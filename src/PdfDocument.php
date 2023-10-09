@@ -317,7 +317,8 @@ class PdfDocument
 
     public function object_from_string($expectedObjId, $offset = 0, &$offsetEnd = 0)
     {
-        if (preg_match('/([0-9]+)\s+([0-9+])\s+obj(\s+)/ms', $this->buffer, $matches, 0, $offset) !== 1) {
+//        if (preg_match('/([0-9]+)\s+([0-9+])\s+obj(\s+)/ms', $this->buffer, $matches, 0, $offset) !== 1) {
+        if (preg_match('/(\d+)\s+(\d+)\s+obj/ms', $this->buffer, $matches, 0, $offset) !== 1) {
             // p_debug_var(substr($buffer))
             throw new Exception('object is not valid: ' . $expectedObjId);
         }
