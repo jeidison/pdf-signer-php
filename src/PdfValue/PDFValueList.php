@@ -83,7 +83,7 @@ class PDFValueList extends PDFValue
         }
 
         foreach ($value as $e) {
-            $e = self::_convert($e);
+            $e = self::convert($e);
             $this->value[] = $e;
         }
 

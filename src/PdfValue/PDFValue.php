@@ -34,11 +34,11 @@ abstract class PDFValue implements ArrayAccess, Stringable
     public function offsetGet($offset): mixed
     {
         if (! is_array($this->value)) {
-            return false;
+            return null;
         }
 
         if (! isset($this->value[$offset])) {
-            return false;
+            return null;
         }
 
         return $this->value[$offset];
@@ -56,7 +56,7 @@ abstract class PDFValue implements ArrayAccess, Stringable
     public function offsetUnset($offset): void
     {
         if ((! is_array($this->value)) || (! isset($this->value[$offset]))) {
-            throw new Exception('invalid offset');
+            throw new Exception('Invalid offset');
         }
 
         unset($this->value[$offset]);
@@ -77,7 +77,7 @@ abstract class PDFValue implements ArrayAccess, Stringable
         return false;
     }
 
-    public function get_keys()
+    public function getKeys()
     {
         return false;
     }
@@ -96,7 +96,7 @@ abstract class PDFValue implements ArrayAccess, Stringable
     }
 
     /**
-     * Function that converts standard types into PDFValue* types
+     * Function that converts standard types into PDFValue
      *  - integer, double are translated into PDFValueSimple
      *  - string beginning with /, is translated into PDFValueType
      *  - string without separator (e.g. "\t\n ") are translated into PDFValueSimple
@@ -106,7 +106,7 @@ abstract class PDFValue implements ArrayAccess, Stringable
      * @param mixed $value a standard php object (e.g. string, integer, double, array, etc.)
      * @return PDFValue an object of type PDFValue*, depending on the
      */
-    protected static function _convert(mixed $value)
+    protected static function convert(mixed $value): PDFValue
     {
         switch (gettype($value)) {
             case 'integer':
@@ -127,13 +127,13 @@ abstract class PDFValue implements ArrayAccess, Stringable
                 if ($value === []) {
                     $value = new PDFValueList();
                 } else {
-                    $obj = PDFValueObject::fromarray($value);
-                    if ($obj !== false) {
+                    $obj = PDFValueObject::fromArray($value);
+                    if ($obj !== null) {
                         $value = $obj;
                     } else {
                         $list = [];
                         foreach ($value as $v) {
-                            $list[] = self::_convert($v);
+                            $list[] = self::convert($v);
                         }
 
                         $value = new PDFValueList($list);

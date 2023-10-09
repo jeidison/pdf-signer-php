@@ -8,7 +8,7 @@ class PDFValueObject extends PDFValue
     {
         $result = [];
         foreach ($value as $k => $v) {
-            $result[$k] = self::_convert($v);
+            $result[$k] = self::convert($v);
         }
 
         parent::__construct($result);
@@ -49,7 +49,7 @@ class PDFValueObject extends PDFValue
         return $result;
     }
 
-    public static function fromarray($parts)
+    public static function fromArray($parts): ?PDFValueObject
     {
         $k = array_keys($parts);
         $intkeys = false;
@@ -62,11 +62,11 @@ class PDFValueObject extends PDFValue
         }
 
         if ($intkeys) {
-            return false;
+            return null;
         }
 
         foreach ($parts as $k => $v) {
-            $result[$k] = self::_convert($v);
+            $result[$k] = self::convert($v);
         }
 
         return new PDFValueObject($result);
@@ -111,7 +111,7 @@ class PDFValueObject extends PDFValue
         return new PDFValueObject($result);
     }
 
-    public function get_keys()
+    public function getKeys()
     {
         return array_keys($this->value);
     }
@@ -134,7 +134,7 @@ class PDFValueObject extends PDFValue
             // return null;
         }
 
-        $this->value[$offset] = self::_convert($value);
+        $this->value[$offset] = self::convert($value);
         // return $this->value[$offset];
     }
 

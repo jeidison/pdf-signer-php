@@ -2,29 +2,31 @@
 
 namespace Jeidison\PdfSigner;
 
-use Exception;
 use Stringable;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class Buffer implements Stringable
 {
-    protected string $buffer = '';
+    protected string $buffer;
 
     protected int $bufferLen = 0;
 
-    public function __construct($string = null)
+    public function __construct(string $string = null)
     {
         if ($string === null) {
             $string = '';
         }
 
         $this->buffer = $string;
-        $this->bufferLen = strlen((string) $string);
+        $this->bufferLen = strlen($string);
     }
 
-    public function data(...$datas): void
+    public function data(... $datas): void
     {
         foreach ($datas as $data) {
-            $this->bufferLen += strlen((string) $data);
+            $this->bufferLen += strlen($data);
             $this->buffer .= $data;
         }
     }
@@ -39,12 +41,8 @@ class Buffer implements Stringable
         return $this->buffer;
     }
 
-    public function append($b): static
+    public function append(Buffer $b): static
     {
-        if ($b::class !== static::class) {
-            throw new Exception('invalid buffer to add to this one');
-        }
-
         $this->buffer .= $b->raw();
         $this->bufferLen = strlen($this->buffer);
 
@@ -53,12 +51,6 @@ class Buffer implements Stringable
 
     public function add(...$bs): Buffer
     {
-        foreach ($bs as $b) {
-            if ($b::class !== static::class) {
-                throw new Exception('Invalid buffer to add to this one');
-            }
-        }
-
         $buffer = new Buffer($this->buffer);
         foreach ($bs as $b) {
             $buffer->append($b);

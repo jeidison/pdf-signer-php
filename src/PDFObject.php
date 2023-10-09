@@ -46,7 +46,7 @@ class PDFObject implements ArrayAccess, Stringable
 
     public function get_keys()
     {
-        return $this->_value->get_keys();
+        return $this->_value->getKeys();
     }
 
     public function set_oid($oid)

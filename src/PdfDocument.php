@@ -423,7 +423,7 @@ class PdfDocument
     {
         $root = $this->trailerObject['Root'];
         if (($root === false) || (($root = $root->get_object_referenced()) === false)) {
-            throw new Exception('could not find the root object from the trailer');
+            throw new Exception('Could not find the root object from the trailer');
         }
 
         $rootObj = $this->get_object($root);

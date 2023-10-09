@@ -63,7 +63,7 @@ class Signature
         return !empty($this->certificate['cert']);
     }
 
-    public function generate_signature_in_document(): ?PDFObject
+    public function generate_signature_in_document(): PDFObject
     {
         $imageFileName = null;
         $rectToAppear = [0, 0, 0, 0];
@@ -79,17 +79,17 @@ class Signature
         $root = $trailerObject['Root'];
 
         if (($root === false) || (($root = $root->get_object_referenced()) === false)) {
-            throw new Exception('could not find the root object from the trailer');
+            throw new Exception('Could not find the root object from the trailer');
         }
 
         $rootObj = $this->pdfDocument->get_object($root);
         if ($rootObj === false) {
-            throw new Exception('invalid root object');
+            throw new Exception('Invalid root object');
         }
 
         $pageObj = $this->pdfDocument->get_page($pageToAppear);
         if ($pageObj === false) {
-            throw new Exception('invalid page');
+            throw new Exception('Invalid page');
         }
 
         $updatedObjects = [];
@@ -120,11 +120,8 @@ class Signature
             ]
         );
 
-        $signature = null;
-        if ($this->hasCertificate()) {
-            $signature = $this->pdfDocument->create_object([], PDFSignatureObject::class, false);
-            $annotationObject['V'] = new PDFValueReference($signature->get_oid());
-        }
+        $signature = $this->pdfDocument->create_object([], PDFSignatureObject::class, false);
+        $annotationObject['V'] = new PDFValueReference($signature->get_oid());
 
         if ($imageFileName !== null) {
             $pagesize = $this->pdfDocument->get_page_size($pageToAppear);

@@ -15,8 +15,6 @@ class Signer
 
     private PdfDocument $pdfDocument;
 
-    private array $backupState = [];
-
     public function __construct()
     {
         $this->signature = Signature::new();
@@ -31,9 +29,8 @@ class Signer
     {
         $pdfDocument = new PdfDocument();
         $pdfDocument->setBufferFromString($pdfContent);
-        $this->withPdfDocument($pdfDocument);
 
-        return $this;
+        return $this->withPdfDocument($pdfDocument);
     }
 
     public function withDepth(?int $depth): self
@@ -43,14 +40,14 @@ class Signer
         return $this;
     }
 
-    public function withPdfDocument(PdfDocument $pdfDocument): self
+    private function withPdfDocument(PdfDocument $pdfDocument): self
     {
         $this->pdfDocument = $pdfDocument;
 
         return $this;
     }
 
-    public function prepareDocumentToSign(): self
+    private function prepareDocumentToSign(): void
     {
         $structure = Struct::new()
             ->withDepth($this->depth)
@@ -77,8 +74,6 @@ class Signer
         $pdfDocument->acquire_pages_info();
 
         $this->signature->withPdfDocument($pdfDocument);
-
-        return $this;
     }
 
     public function withCertificate(string $pathCertificate, string $password): self
@@ -108,50 +103,18 @@ class Signer
     {
         $this->prepareDocumentToSign();
 
-        return $this->to_pdf_file_b();
+        return $this->toBuffer();
     }
 
-    public function pushState(): void
-    {
-        $clonedObjects = [];
-        foreach ($this->pdfDocument->getPdfObjects() as $oid => $object) {
-            $clonedObjects[$oid] = clone $object;
-        }
-
-        $this->backupState[] = [
-            'max_oid'     => $this->pdfDocument->getMaxOid(),
-            'pdf_objects' => $clonedObjects,
-        ];
-    }
-
-    public function popState(): bool
-    {
-        if (count($this->backupState) > 0) {
-            $state = array_pop($this->backupState);
-            $this->pdfDocument->setMaxOid($state['max_oid']);
-            $this->pdfDocument->setPdfObjects($state['pdf_objects']);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private function to_pdf_file_b(): Buffer
+    private function toBuffer(): Buffer
     {
         if (!$this->signature->hasCertificate()) {
             return $this->pdfDocument->getBuffer();
         }
 
-        $this->pushState();
         $this->pdfDocument->update_mod_date();
 
         $signature = $this->signature->generate_signature_in_document();
-        if (!$signature) {
-            $this->popState();
-
-            throw new Exception('could not generate the signed document');
-        }
 
         [$_doc_to_xref, $_obj_offsets] = $this->pdfDocument->generate_content_to_xref();
         $xrefOffset = $_doc_to_xref->size();
@@ -226,7 +189,7 @@ class Signer
 
         $_doc_to_xref->data($signature->to_pdf_entry());
 
-        $this->popState();
+//        $this->popState();
 
         return new Buffer($_doc_to_xref->raw().$_doc_from_xref->raw());
     }
