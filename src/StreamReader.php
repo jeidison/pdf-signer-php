@@ -2,9 +2,12 @@
 
 namespace Jeidison\PdfSigner;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class StreamReader
 {
-    protected string $buffer = '';
+    protected string $buffer;
 
     protected int $bufferLen = 0;
 
@@ -12,16 +15,12 @@ class StreamReader
 
     public function __construct(string $string = null, $offset = 0)
     {
-        if ($string === null) {
-            $string = '';
-        }
-
         $this->buffer = $string;
         $this->bufferLen = strlen($string);
         $this->goto($offset);
     }
 
-    public function nextchar(): false|string
+    public function nextChar(): false|string
     {
         $this->position = min($this->position + 1, $this->bufferLen);
 

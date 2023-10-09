@@ -14,41 +14,6 @@ class PDFValueObject extends PDFValue
         parent::__construct($result);
     }
 
-    public function diff($other)
-    {
-        $different = parent::diff($other);
-        if (($different === false) || ($different === null)) {
-            return $different;
-        }
-
-        $result = new PDFValueObject();
-        $differences = 0;
-
-        foreach ($this->value as $k => $v) {
-            if (isset($other->value[$k])) {
-                if (is_a($this->value[$k], PDFValue::class)) {
-                    $different = $this->value[$k]->diff($other->value[$k]);
-                    if ($different === false) {
-                        $result[$k] = $v;
-                        ++$differences;
-                    } elseif ($different !== null) {
-                        $result[$k] = $different;
-                        ++$differences;
-                    }
-                }
-            } else {
-                $result[$k] = $v;
-                ++$differences;
-            }
-        }
-
-        if ($differences === 0) {
-            return null;
-        }
-
-        return $result;
-    }
-
     public static function fromArray($parts): ?PDFValueObject
     {
         $k = array_keys($parts);
@@ -72,27 +37,27 @@ class PDFValueObject extends PDFValue
         return new PDFValueObject($result);
     }
 
-    public static function fromstring($str)
+    public static function fromString($str): ?PDFValueObject
     {
         $result = [];
         $field = null;
-        $value = null;
         $parts = explode(' ', (string) $str);
         $counter = count($parts);
-        for ($i = 0; $i < $counter; ++$i) {
+        for ($i = 0; $i < $counter; $i++) {
+
             if ($field === null) {
                 $field = $parts[$i];
                 if ($field === '') {
-                    return false;
+                    return null;
                 }
 
                 if ($field[0] !== '/') {
-                    return false;
+                    return null;
                 }
 
                 $field = substr($field, 1);
                 if ($field === '') {
-                    return false;
+                    return null;
                 }
 
                 continue;
@@ -103,39 +68,27 @@ class PDFValueObject extends PDFValue
             $field = null;
         }
 
-        // If there is no pair of values, there is no valid
         if ($field !== null) {
-            return false;
+            return null;
         }
 
         return new PDFValueObject($result);
     }
 
-    public function getKeys()
+    public function getKeys(): array
     {
         return array_keys($this->value);
     }
 
-    /**
-     * Function used to enable using [x] to set values to the fields of the object (from ArrayAccess interface)
-     *  i.e. object[offset]=value
-     *
-     * @param offset the index used inside the braces
-     * @param value the value to set to that index (it will be converted to a PDFValue* object)
-     * @return value the value set to the field
-     */
     public function offsetSet($offset, $value): void
     {
         if ($value === null) {
             if (isset($this->value[$offset])) {
                 unset($this->value[$offset]);
             }
-
-            // return null;
         }
 
         $this->value[$offset] = self::convert($value);
-        // return $this->value[$offset];
     }
 
     public function offsetExists($offset): bool
@@ -143,18 +96,13 @@ class PDFValueObject extends PDFValue
         return isset($this->value[$offset]);
     }
 
-    /**
-     * Function to output the object using the PDF format, and trying to make it compact (by reducing spaces, depending on the values)
-     *
-     * @return pdfentry the PDF entry for the object
-     */
     public function __toString(): string
     {
         $result = [];
         foreach ($this->value as $k => $v) {
             $v = ''.$v;
             if ($v === '') {
-                $result[] = '/' . $k;
+                $result[] = '/'.$k;
 
                 continue;
             }

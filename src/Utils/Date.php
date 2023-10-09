@@ -6,7 +6,7 @@ use DateTime;
 
 final class Date
 {
-    public static function toPdfDateString(?DateTime $date = null): string
+    public static function toPdfDateString(DateTime $date = null): string
     {
         $date ??= new DateTime();
         $timestamp = $date->getTimestamp();

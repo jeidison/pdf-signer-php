@@ -14,24 +14,7 @@ class PDFValueList extends PDFValue
         return '['.implode(' ', $this->value).']';
     }
 
-    public function diff($other)
-    {
-        $different = parent::diff($other);
-        if (($different === false) || ($different === null)) {
-            return $different;
-        }
-
-        $s1 = $this->__toString();
-        $s2 = $other->__toString();
-
-        if ($s1 === $s2) {
-            return null;
-        }
-
-        return $this;
-    }
-
-    public function val($list = false)
+    public function val($list = false): array
     {
         if ($list === true) {
             $result = [];

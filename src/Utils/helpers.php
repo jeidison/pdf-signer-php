@@ -1,6 +1,5 @@
 <?php
 
-
 use Jeidison\PdfSigner\StreamReader;
 
 function parseJpg($filecontent)
@@ -40,7 +39,7 @@ function parsePngStream(&$f)
 {
     // Check signature
     if (($res = readStream($f, 8)) != chr(137).'PNG'.chr(13).chr(10).chr(26).chr(10)) {
-        throw new Exception('Not a PNG image ' . $res);
+        throw new Exception('Not a PNG image '.$res);
     }
 
     // Read header chunk
@@ -136,7 +135,7 @@ function parsePngStream(&$f)
         if ($ct == 4) {
             // Gray image
             $len = 2 * $w;
-            for ($i = 0; $i < $h; ++$i) {
+            for ($i = 0; $i < $h; $i++) {
                 $pos = (1 + $len) * $i;
                 $color .= $data[$pos];
                 $alpha .= $data[$pos];
@@ -147,7 +146,7 @@ function parsePngStream(&$f)
         } else {
             // RGB image
             $len = 4 * $w;
-            for ($i = 0; $i < $h; ++$i) {
+            for ($i = 0; $i < $h; $i++) {
                 $pos = (1 + $len) * $i;
                 $color .= $data[$pos];
                 $alpha .= $data[$pos];

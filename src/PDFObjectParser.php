@@ -228,7 +228,7 @@ class PDFObjectParser implements \Stringable
             }
         }
 
-        if (($this->_c !== false) && (!str_contains(">0123456789abcdefABCDEF \t\r\n\f", $this->_c))) {
+        if (($this->_c !== false) && (! str_contains(">0123456789abcdefABCDEF \t\r\n\f", $this->_c))) {
             throw new Exception('invalid hex string');
         }
 
@@ -253,13 +253,13 @@ class PDFObjectParser implements \Stringable
         while ($this->_c !== false) {
             $this->nextchar();
             if (($this->_c === ')') && (! strlen($token) || ($token[strlen($token) - 1] !== '\\'))) {
-                --$nParenthesis;
+                $nParenthesis--;
                 if ($nParenthesis == 0) {
                     break;
                 }
             } else {
                 if (($this->_c === '(') && (! strlen($token) || ($token[strlen($token) - 1] !== '\\'))) {
-                    ++$nParenthesis;
+                    $nParenthesis++;
                 }
 
                 $token .= $this->_c;
@@ -294,7 +294,7 @@ class PDFObjectParser implements \Stringable
                 case '%':
                     $this->nextchar();
                     $token = '';
-                    while (!str_contains("\n\r", (string) $this->_c)) {
+                    while (! str_contains("\n\r", (string) $this->_c)) {
                         $token .= $this->_c;
                         $this->nextchar();
                     }
@@ -397,7 +397,7 @@ class PDFObjectParser implements \Stringable
                     return new PDFValueObject($object);
                     break;
                 default:
-                    throw new Exception('Invalid token: ' . $this);
+                    throw new Exception('Invalid token: '.$this);
             }
         }
 
@@ -492,7 +492,7 @@ class PDFObjectParser implements \Stringable
                     break;
 
                 default:
-                    throw new Exception('Invalid token: ' . $this);
+                    throw new Exception('Invalid token: '.$this);
             }
         }
 
@@ -503,7 +503,7 @@ class PDFObjectParser implements \Stringable
     {
         $this->start();
         while ($this->nexttoken() !== false) {
-            echo $this->_t . PHP_EOL;
+            echo $this->_t.PHP_EOL;
         }
     }
 }

@@ -23,7 +23,7 @@ class Buffer implements Stringable
         $this->bufferLen = strlen($string);
     }
 
-    public function data(... $datas): void
+    public function data(...$datas): void
     {
         foreach ($datas as $data) {
             $this->bufferLen += strlen($data);

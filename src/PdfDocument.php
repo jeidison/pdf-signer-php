@@ -11,12 +11,19 @@ use Ramsey\Uuid\Uuid;
 
 class PdfDocument
 {
+    /** @var array<PDFObject> */
     protected array $pdfObjects = [];
+
     protected string $pdfVersion;
+
     protected PDFValue $trailerObject;
+
     protected int $xrefPosition;
+
     protected array $xrefTable;
+
     protected string $xrefTableVersion;
+
     protected array $revisions;
 
     protected Buffer $buffer;
@@ -122,7 +129,7 @@ class PdfDocument
             throw new Exception('could not find the root object from the trailer');
         }
 
-        $root = $this->get_object($root);
+        $root = $this->getObject($root);
         if ($root !== false) {
             $pages = $root['Pages'];
             if (($pages === false) || (($pages = $pages->get_object_referenced()) === false)) {
@@ -133,26 +140,26 @@ class PdfDocument
         }
     }
 
-    protected function get_new_oid()
+    protected function getNewOid(): int
     {
-        ++$this->maxOid;
+        $this->maxOid++;
 
         return $this->maxOid;
     }
 
-    public function create_object($value = [], $class = PDFObject::class, $autoadd = true): PDFObject
+    public function createObject($value = [], $class = PDFObject::class, $autoAdd = true): PDFObject
     {
-        $o = new $class($this->get_new_oid(), $value);
-        if ($autoadd === true) {
-            $this->add_object($o);
+        $classPdfObject = new $class($this->getNewOid(), $value);
+        if ($autoAdd === true) {
+            $this->addObject($classPdfObject);
         }
 
-        return $o;
+        return $classPdfObject;
     }
 
-    public function add_object(PDFObject $pdfObject)
+    public function addObject(PDFObject $pdfObject): bool
     {
-        $oid = $pdfObject->get_oid();
+        $oid = $pdfObject->getOid();
 
         if (isset($this->pdfObjects[$oid]) && $this->pdfObjects[$oid]->get_generation() > $pdfObject->get_generation()) {
             return false;
@@ -160,7 +167,6 @@ class PdfDocument
 
         $this->pdfObjects[$oid] = $pdfObject;
 
-        // Update the maximum oid
         if ($oid > $this->maxOid) {
             $this->maxOid = $oid;
         }
@@ -168,7 +174,7 @@ class PdfDocument
         return true;
     }
 
-    public function get_object($oid, $originalVersion = false)
+    public function getObject($oid, $originalVersion = false): ?PDFObject
     {
         if ($originalVersion === true) {
             // Prioritizing the original version
@@ -188,31 +194,30 @@ class PdfDocument
         return $object;
     }
 
-    public function find_object($oid)
+    public function find_object($oid): ?PDFObject
     {
         if ($oid === 0) {
-            return false;
+            return null;
         }
 
         if (! isset($this->xrefTable[$oid])) {
-            return false;
+            return null;
         }
 
-        // Find the object and get where it ends
         $objectOffset = $this->xrefTable[$oid];
 
         if (! is_array($objectOffset)) {
-            return $this->find_object_at_pos($oid, $objectOffset);
-        } else {
-            return $this->find_object_in_objstm($objectOffset['stmoid'], $objectOffset['pos'], $oid);
+            return $this->findObjectAtPos($oid, $objectOffset);
         }
+
+        return $this->find_object_in_objstm($objectOffset['stmoid'], $objectOffset['pos'], $oid);
     }
 
     public function find_object_in_objstm($objstmOid, $objpos, $oid)
     {
         $objstm = $this->find_object($objstmOid);
         if ($objstm === false) {
-            throw new Exception('could not get object stream ' . $objstmOid);
+            throw new Exception('could not get object stream '.$objstmOid);
         }
 
         if (($objstm['Extends'] ?? false !== false)) {
@@ -225,7 +230,7 @@ class PdfDocument
         $Type = $objstm['Type'] ?? false;
 
         if (($First === false) || ($N === false) || ($Type === false)) {
-            throw new Exception('invalid object stream ' . $objstmOid);
+            throw new Exception('invalid object stream '.$objstmOid);
         }
 
         if ($Type->val() !== 'ObjStm') {
@@ -241,7 +246,7 @@ class PdfDocument
         $stream = substr((string) $stream, $First);
 
         if (count($index) % 2 !== 0) {
-            throw new Exception('invalid index for object stream ' . $objstmOid);
+            throw new Exception('invalid index for object stream '.$objstmOid);
         }
 
         $objpos *= 2;
@@ -258,38 +263,27 @@ class PdfDocument
 
         $offsets[] = strlen($stream);
         sort($offsets);
-//        for ($i = 0; ($i < count($offsets)) && ($offset >= $offsets[$i]); ++$i);
 
         $next = $offsets[$i];
+        $objectDefStr = $oid.' 0 obj '.substr($stream, $offset, $next - $offset).' endobj';
 
-        $objectDefStr = $oid . ' 0 obj '.substr($stream, $offset, $next - $offset).' endobj';
-
-        return $this->object_from_string($objectDefStr, $oid);
+        return $this->objectFromString($objectDefStr, $oid);
     }
 
-    public function find_object_at_pos($oid, $objectOffset)
+    public function findObjectAtPos($oid, $objectOffset): PDFObject
     {
-        $object = $this->object_from_string($oid, $objectOffset, $offsetEnd);
+        $object = $this->objectFromString($oid, $objectOffset, $offsetEnd);
 
-        if ($object === false) {
-            return false;
-        }
-
-        $_stream_pending = false;
-
-        // The distinction is required, because we need to get the proper start for the stream, and if using CRLF instead of LF
-        //   - according to https://www.adobe.com/content/dam/acom/en/devnet/pdf/PDF32000_2008.pdf, stream is followed by CRLF
-        //     or LF, but not single CR.
+        $streamPending = false;
         if (substr($this->buffer, $offsetEnd - 7, 7) === "stream\n") {
-            $_stream_pending = $offsetEnd;
+            $streamPending = $offsetEnd;
         }
 
         if (substr($this->buffer, $offsetEnd - 7, 8) === "stream\r\n") {
-            $_stream_pending = $offsetEnd + 1;
+            $streamPending = $offsetEnd + 1;
         }
 
-        // If it expects a stream, get it
-        if ($_stream_pending !== false) {
+        if ($streamPending !== false) {
             $length = $object['Length']->get_int();
             if ($length === false) {
                 $lengthObjectId = $object['Length']->get_object_referenced();
@@ -299,7 +293,7 @@ class PdfDocument
 
                 $lengthObject = $this->find_object($lengthObjectId);
                 if ($lengthObject === false) {
-                    throw new Exception('could not get object ' . $oid);
+                    throw new Exception('could not get object '.$oid);
                 }
 
                 $length = $lengthObject->get_value()->get_int();
@@ -309,16 +303,16 @@ class PdfDocument
                 throw new Exception('could not get stream length for object ');
             }
 
-            $object->set_stream(substr((string) $this->buffer, $_stream_pending, $length));
+            $object->setStream(substr((string) $this->buffer, $streamPending, $length));
         }
 
         return $object;
     }
 
-    public function object_from_string($expectedObjId, $offset = 0, &$offsetEnd = 0)
+    public function objectFromString($expectedObjId, $offset = 0, &$offsetEnd = 0): PDFObject
     {
         if (preg_match('/(\d+)\s+(\d+)\s+obj/ms', $this->buffer, $matches, 0, $offset) !== 1) {
-            throw new Exception('Object is not valid: ' . $expectedObjId);
+            throw new Exception('Object is not valid: '.$expectedObjId);
         }
 
         $foundObjHeader = $matches[0];
@@ -333,12 +327,9 @@ class PdfDocument
             throw new Exception(sprintf('pdf structure is corrupt: found obj %d while searching for obj %s (at %s)', $foundObjId, $expectedObjId, $offset));
         }
 
-        // The object starts after the header
         $offset += strlen($foundObjHeader);
 
-        // Parse the object
         $parser = new PDFObjectParser();
-
         $stream = new StreamReader($this->buffer, $offset);
 
         $objParsed = $parser->parse($stream);
@@ -347,14 +338,11 @@ class PdfDocument
         }
 
         switch ($parser->current_token()) {
-            case PDFObjectParser::T_OBJECT_END:
-                // The object has ended correctly
-                break;
             case PDFObjectParser::T_STREAM_BEGIN:
-                // There is an stream
+            case PDFObjectParser::T_OBJECT_END:
                 break;
             default:
-                throw new Exception('malformed object');
+                throw new Exception('Malformed object');
         }
 
         $offsetEnd = $stream->getPosition();
@@ -364,7 +352,7 @@ class PdfDocument
 
     protected function _get_page_info($oid, $info = []): array|false
     {
-        $object = $this->get_object($oid);
+        $object = $this->getObject($oid);
         if ($object === false) {
             throw new Exception('could not get information about the page');
         }
@@ -416,7 +404,7 @@ class PdfDocument
             return false;
         }
 
-        return $this->get_object($this->pagesInfo[$i]['id']);
+        return $this->getObject($this->pagesInfo[$i]['id']);
     }
 
     public function update_mod_date(DateTime $date = null)
@@ -426,7 +414,7 @@ class PdfDocument
             throw new Exception('Could not find the root object from the trailer');
         }
 
-        $rootObj = $this->get_object($root);
+        $rootObj = $this->getObject($root);
         if ($rootObj === false) {
             throw new Exception('invalid root object');
         }
@@ -436,13 +424,13 @@ class PdfDocument
         if (isset($rootObj['Metadata'])) {
             $metadata = $rootObj['Metadata'];
             if ((($referenced = $metadata->get_object_referenced()) !== false) && (! is_array($referenced))) {
-                $metadata = $this->get_object($referenced);
+                $metadata = $this->getObject($referenced);
                 $metastream = $metadata->get_stream();
                 $metastream = preg_replace('/<xmp:ModifyDate>([^<]*)<\/xmp:ModifyDate>/', '<xmp:ModifyDate>'.$date->format('c').'</xmp:ModifyDate>', (string) $metastream);
                 $metastream = preg_replace('/<xmp:MetadataDate>([^<]*)<\/xmp:MetadataDate>/', '<xmp:MetadataDate>'.$date->format('c').'</xmp:MetadataDate>', $metastream);
                 $metastream = preg_replace('/<xmpMM:InstanceID>([^<]*)<\/xmpMM:InstanceID>/', '<xmpMM:InstanceID>uuid:'.Uuid::uuid4()->toString().'</xmpMM:InstanceID>', $metastream);
-                $metadata->set_stream($metastream, false);
-                $this->add_object($metadata);
+                $metadata->setStream($metastream, false);
+                $this->addObject($metadata);
             }
         }
 
@@ -451,14 +439,14 @@ class PdfDocument
             throw new Exception('could not find the info object from the trailer');
         }
 
-        $infoObj = $this->get_object($info);
+        $infoObj = $this->getObject($info);
         if ($infoObj === false) {
             throw new Exception('Invalid info object');
         }
 
         $infoObj['ModDate'] = new PDFValueString(Date::toPdfDateString($date));
         $infoObj['Producer'] = 'Modifier with PHP Signer';
-        $this->add_object($infoObj);
+        $this->addObject($infoObj);
 
         return true;
     }
@@ -471,7 +459,7 @@ class PdfDocument
 
         $offset = $result->size();
         foreach ($this->pdfObjects as $objId => $object) {
-            $result->data($object->to_pdf_entry());
+            $result->data($object->toPdfEntry());
             $offsets[$objId] = $offset;
             $offset = $result->size();
         }
@@ -502,5 +490,4 @@ class PdfDocument
 
         return $pageinfo['size'] ?? null;
     }
-
 }

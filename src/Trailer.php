@@ -4,9 +4,13 @@ namespace Jeidison\PdfSigner;
 
 use Exception;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class Trailer
 {
     private string $buffer;
+
     private int $trailerPos;
 
     public static function new(): static
@@ -37,6 +41,7 @@ class Trailer
         $trailerStr = $matches[1];
         try {
             $parser = new PDFObjectParser();
+
             return $parser->parsestr($trailerStr);
         } catch (Exception $e) {
             throw new Exception('Trailer is not valid.', previous: $e);

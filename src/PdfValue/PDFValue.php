@@ -8,11 +8,11 @@ use Stringable;
 
 abstract class PDFValue implements ArrayAccess, Stringable
 {
-    public function __construct(protected $value)
+    public function __construct(protected mixed $value)
     {
     }
 
-    public function val()
+    public function val(): mixed
     {
         return $this->value;
     }
@@ -79,20 +79,7 @@ abstract class PDFValue implements ArrayAccess, Stringable
 
     public function getKeys()
     {
-        return false;
-    }
-
-    public function diff($other)
-    {
-        if (! is_a($other, static::class)) {
-            return false;
-        }
-
-        if ($this->value === $other->value) {
-            return null;
-        }
-
-        return $this->value;
+        return null;
     }
 
     /**
@@ -103,7 +90,7 @@ abstract class PDFValue implements ArrayAccess, Stringable
      *  - other strings are translated into PDFValueString
      *  - array is translated into PDFValueList, and its inner elements are also converted.
      *
-     * @param mixed $value a standard php object (e.g. string, integer, double, array, etc.)
+     * @param  mixed  $value a standard php object (e.g. string, integer, double, array, etc.)
      * @return PDFValue an object of type PDFValue*, depending on the
      */
     protected static function convert(mixed $value): PDFValue

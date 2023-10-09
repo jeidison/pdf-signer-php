@@ -53,7 +53,7 @@ final class Img
         }
 
         if (isset($info['dp'])) {
-            $image['DecodeParms'] = PDFValueObject::fromstring($info['dp']);
+            $image['DecodeParms'] = PDFValueObject::fromString($info['dp']);
         }
 
         if (isset($info['trns']) && is_array($info['trns'])) {

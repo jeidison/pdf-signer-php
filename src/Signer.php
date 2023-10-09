@@ -10,7 +10,6 @@ use Jeidison\PdfSigner\Xref\Xref;
 
 class Signer
 {
-    private ?int $depth = null;
     private ?Signature $signature;
 
     private PdfDocument $pdfDocument;
@@ -33,13 +32,6 @@ class Signer
         return $this->withPdfDocument($pdfDocument);
     }
 
-    public function withDepth(?int $depth): self
-    {
-        $this->depth = $depth;
-
-        return $this;
-    }
-
     private function withPdfDocument(PdfDocument $pdfDocument): self
     {
         $this->pdfDocument = $pdfDocument;
@@ -47,18 +39,24 @@ class Signer
         return $this;
     }
 
+    public function withMetadata(Metadata $metadata): self
+    {
+        $this->signature->withMetadata($metadata);
+
+        return $this;
+    }
+
     private function prepareDocumentToSign(): void
     {
         $structure = Struct::new()
-            ->withDepth($this->depth)
             ->withPdfDocument($this->pdfDocument)
             ->structure();
 
-        $trailer      = $structure['trailer'];
-        $version      = $structure['version'];
-        $xrefTable    = $structure['xref'];
+        $trailer = $structure['trailer'];
+        $version = $structure['version'];
+        $xrefTable = $structure['xref'];
         $xrefPosition = $structure['xrefposition'];
-        $revisions    = $structure['revisions'];
+        $revisions = $structure['revisions'];
 
         $pdfDocument = $this->pdfDocument;
         $pdfDocument->setPdfVersion($version);
@@ -80,11 +78,11 @@ class Signer
     {
         $certFileContent = file_get_contents($pathCertificate);
         if ($certFileContent === false) {
-            throw new Exception('Could not read file ' . $pathCertificate);
+            throw new Exception('Could not read file '.$pathCertificate);
         }
 
         if (openssl_pkcs12_read($certFileContent, $certificate, $password) === false) {
-            throw new Exception('Could not get the certificates from file ' . openssl_error_string());
+            throw new Exception('Could not get the certificates from file '.openssl_error_string());
         }
 
         $certInfo = openssl_x509_parse($certificate['cert']);
@@ -108,19 +106,19 @@ class Signer
 
     private function toBuffer(): Buffer
     {
-        if (!$this->signature->hasCertificate()) {
+        if (! $this->signature->hasCertificate()) {
             return $this->pdfDocument->getBuffer();
         }
 
         $this->pdfDocument->update_mod_date();
 
-        $signature = $this->signature->generate_signature_in_document();
+        $signature = $this->signature->generateSignatureInDocument();
 
-        [$_doc_to_xref, $_obj_offsets] = $this->pdfDocument->generate_content_to_xref();
-        $xrefOffset = $_doc_to_xref->size();
+        [$docToXref, $_obj_offsets] = $this->pdfDocument->generate_content_to_xref();
+        $xrefOffset = $docToXref->size();
 
-        $_obj_offsets[$signature->get_oid()] = $_doc_to_xref->size();
-        $xrefOffset += strlen((string) $signature->to_pdf_entry());
+        $_obj_offsets[$signature->getOid()] = $docToXref->size();
+        $xrefOffset += strlen($signature->toPdfEntry());
 
         $docVersionString = str_replace('PDF-', '', $this->pdfDocument->getPdfVersion());
 
@@ -134,11 +132,11 @@ class Signer
         }
 
         if ($targetVersion >= '1.5') {
-            $trailer = $this->pdfDocument->create_object(clone $this->pdfDocument->getTrailerObject());
+            $trailer = $this->pdfDocument->createObject(clone $this->pdfDocument->getTrailerObject());
 
-            $_obj_offsets[$trailer->get_oid()] = $xrefOffset;
+            $_obj_offsets[$trailer->getOid()] = $xrefOffset;
 
-            $xref = Xref::new()->build_xref_1_5($_obj_offsets);
+            $xref = Xref::new()->buildXref15($_obj_offsets);
 
             $trailer['Index'] = explode(' ', (string) $xref['Index']);
             $trailer['W'] = $xref['W'];
@@ -156,30 +154,31 @@ class Signer
                 unset($trailer['Filter']);
             }
 
-            $trailer->set_stream($xref['stream'], false);
+            $trailer->setStream($xref['stream'], false);
             $trailer['Prev'] = $this->pdfDocument->getXrefPosition();
 
-            $_doc_from_xref = new Buffer($trailer->to_pdf_entry());
-            $_doc_from_xref->data('startxref'.PHP_EOL.$xrefOffset.PHP_EOL.'%%EOF'.PHP_EOL);
+            $docFromXref = new Buffer($trailer->toPdfEntry());
+            $docFromXref->data('startxref'.PHP_EOL.$xrefOffset.PHP_EOL.'%%EOF'.PHP_EOL);
         } else {
-            $xrefContent = Xref::new()->build_xref($_obj_offsets);
+            $xrefContent = Xref::new()->buildXref($_obj_offsets);
 
             $this->pdfDocument->getTrailerObject()['Size'] = $this->pdfDocument->getMaxOid() + 1;
             $this->pdfDocument->getTrailerObject()['Prev'] = $this->pdfDocument->getXrefPosition();
 
-            $_doc_from_xref = new Buffer($xrefContent);
-            $_doc_from_xref->data("trailer\n" . $this->pdfDocument->getTrailerObject());
-            $_doc_from_xref->data("\nstartxref\n{$xrefOffset}\n%%EOF\n");
+            $docFromXref = new Buffer($xrefContent);
+            $docFromXref->data("trailer\n".$this->pdfDocument->getTrailerObject());
+            $docFromXref->data("\nstartxref\n{$xrefOffset}\n%%EOF\n");
         }
 
-        $signature->set_sizes($_doc_to_xref->size(), $_doc_from_xref->size());
+        $signature->withSizes($docToXref->size(), $docFromXref->size());
         $signature['Contents'] = new PDFValueSimple('');
-        $_signable_document = new Buffer($_doc_to_xref->raw().$signature->to_pdf_entry().$_doc_from_xref->raw());
+
+        $signableDocument = new Buffer($docToXref->raw().$signature->toPdfEntry().$docFromXref->raw());
 
         $tmpFolder = sys_get_temp_dir();
         $tempFilename = tempnam($tmpFolder, 'pdfsign');
         $tempFile = fopen($tempFilename, 'wb');
-        fwrite($tempFile, $_signable_document->raw());
+        fwrite($tempFile, $signableDocument->raw());
         fclose($tempFile);
 
         $signatureContents = $this->signature->calculatePkcs7Signature($tempFilename, $tmpFolder);
@@ -187,10 +186,8 @@ class Signer
 
         $signature['Contents'] = new PDFValueHexString($signatureContents);
 
-        $_doc_to_xref->data($signature->to_pdf_entry());
+        $docToXref->data($signature->toPdfEntry());
 
-//        $this->popState();
-
-        return new Buffer($_doc_to_xref->raw().$_doc_from_xref->raw());
+        return new Buffer($docToXref->raw().$docFromXref->raw());
     }
 }

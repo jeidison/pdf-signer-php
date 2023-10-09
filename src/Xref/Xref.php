@@ -4,10 +4,13 @@ namespace Jeidison\PdfSigner\Xref;
 
 use Jeidison\PdfSigner\PdfDocument;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class Xref
 {
     private PdfDocument $pdfDocument;
-    private ?int $depth = null;
+
     private int $xrefPosition;
 
     public static function new(): static
@@ -29,13 +32,6 @@ class Xref
         return $this;
     }
 
-    public function withDepth(?int $depth): self
-    {
-        $this->depth = $depth;
-
-        return $this;
-    }
-
     public function getXref(): array
     {
         $trailerPos = strpos($this->pdfDocument->getBuffer()->raw(), 'trailer', $this->xrefPosition);
@@ -43,18 +39,16 @@ class Xref
             return XRef15::new()
                 ->withPdfDocument($this->pdfDocument)
                 ->withXRefPos($this->xrefPosition)
-                ->withDepth($this->depth)
                 ->getXref();
         }
 
         return XRef14::new()
             ->withBuffer($this->pdfDocument->getBuffer()->raw())
             ->withXRefPos($this->xrefPosition)
-            ->withDepth($this->depth)
             ->getXref();
     }
 
-    public function build_xref_1_5(array $offsets): array
+    public function buildXref15(array $offsets): array
     {
         if (isset($offsets[0])) {
             unset($offsets[0]);
@@ -69,7 +63,7 @@ class Xref
         $count = 1;
         $result = '';
         $counter = count($k);
-        for ($i = 0; $i < $counter; ++$i) {
+        for ($i = 0; $i < $counter; $i++) {
             if ($cK === 0) {
                 $cK = $k[$i] - 1;
                 $iK = $k[$i];
@@ -77,7 +71,7 @@ class Xref
             }
 
             if ($k[$i] === $cK + 1) {
-                ++$count;
+                $count++;
             } else {
                 $indexes[] = sprintf('%s %d', $iK, $count);
                 $count = 1;
@@ -106,8 +100,6 @@ class Xref
         $indexes[] = sprintf('%s %d', $iK, $count);
         $indexes = implode(' ', $indexes);
 
-        // p_debug(show_bytes($result, 6));
-
         return [
             'W' => [1, 4, 1],
             'Index' => $indexes,
@@ -115,7 +107,7 @@ class Xref
         ];
     }
 
-    public function build_xref(array $offsets): string
+    public function buildXref(array $offsets): string
     {
         $k = array_keys($offsets);
         sort($k);
@@ -126,13 +118,13 @@ class Xref
         $result = '';
         $references = "0000000000 65535 f \n";
         $counter = count($k);
-        for ($i = 0; $i < $counter; ++$i) {
+        for ($i = 0; $i < $counter; $i++) {
             if ($k[$i] === 0) {
                 continue;
             }
 
             if ($k[$i] === $cK + 1) {
-                ++$count;
+                $count++;
             } else {
                 $result .= sprintf('%s %d%s%s', $iK, $count, PHP_EOL, $references);
                 $count = 1;
@@ -146,7 +138,6 @@ class Xref
 
         $result .= sprintf('%s %d%s%s', $iK, $count, PHP_EOL, $references);
 
-        return 'xref
-' . $result;
+        return "xref\n".$result;
     }
 }

@@ -6,10 +6,13 @@ use Exception;
 use Jeidison\PdfSigner\PdfValue\PDFValue;
 use Jeidison\PdfSigner\Trailer;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class XRef14
 {
     private string $buffer;
-    private ?int $depth = null;
+
     private int $xrefPosition;
 
     public static function new(): static
@@ -31,23 +34,8 @@ class XRef14
         return $this;
     }
 
-    public function withDepth(?int $depth): self
-    {
-        $this->depth = $depth;
-
-        return $this;
-    }
-
     public function getXref()
     {
-        if ($this->depth !== null) {
-            if ($this->depth <= 0) {
-                return false;
-            }
-
-            --$this->depth;
-        }
-
         $trailerPos = strpos($this->buffer, 'trailer', $this->xrefPosition);
         $minPdfVersion = '1.4';
 
@@ -56,7 +44,7 @@ class XRef14
         $separator = "\r\n";
         $xrefLine = strtok($xrefSubstr, $separator);
         if ($xrefLine !== 'xref') {
-            throw new Exception('Xref tag not found at position ' . $this->xrefPosition);
+            throw new Exception('Xref tag not found at position '.$this->xrefPosition);
         }
 
         $objId = false;
@@ -67,7 +55,7 @@ class XRef14
 
             if (preg_match('/(\d+) (\d+)$/', $xrefLine, $matches) === 1) {
                 if ($objCount > 0) {
-                    throw new Exception('Malformed xref at position ' . $this->xrefPosition);
+                    throw new Exception('Malformed xref at position '.$this->xrefPosition);
                 }
 
                 $objId = (int) $matches[1];
@@ -82,7 +70,7 @@ class XRef14
             }
 
             if ($objCount === 0) {
-                throw new Exception('Unexpected entry for xref: ' . $xrefLine);
+                throw new Exception('Unexpected entry for xref: '.$xrefLine);
             }
 
             $objOffset = (int) $matches[1];
@@ -103,8 +91,8 @@ class XRef14
                 }
             }
 
-            --$objCount;
-            ++$objId;
+            $objCount--;
+            $objId++;
         }
 
         $trailerObj = Trailer::new()
@@ -122,15 +110,14 @@ class XRef14
     private function getPreviousXref(PDFValue $trailerObj, string $minPdfVersion, array $xrefTable): array
     {
         $xrefPrevPos = $trailerObj['Prev']->val();
-        if (!is_numeric($xrefPrevPos)) {
+        if (! is_numeric($xrefPrevPos)) {
             throw new Exception('Invalid trailer');
         }
 
-        $xrefPrevPos = (int)$xrefPrevPos;
+        $xrefPrevPos = (int) $xrefPrevPos;
         [$prevTable, , $prevMinPdfVersion] = XRef14::new()
             ->withBuffer($this->buffer)
             ->withXRefPos($xrefPrevPos)
-            ->withDepth($this->depth)
             ->getXref();
 
         if ($prevMinPdfVersion !== $minPdfVersion) {
@@ -139,7 +126,7 @@ class XRef14
 
         if ($prevTable !== false) {
             foreach ($prevTable as $objId => $objOffset) {
-                if (!isset($xrefTable[$objId])) {
+                if (! isset($xrefTable[$objId])) {
                     $xrefTable[$objId] = $objOffset;
                 }
             }

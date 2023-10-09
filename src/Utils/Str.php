@@ -35,7 +35,7 @@ final class Str
         }
 
         $max = strlen($codeAlphabet);
-        for ($i = 0; $i < $length; ++$i) {
+        for ($i = 0; $i < $length; $i++) {
             $token .= $codeAlphabet[random_int(0, $max - 1)];
         }
 

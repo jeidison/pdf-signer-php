@@ -5,11 +5,15 @@ namespace Jeidison\PdfSigner;
 use Exception;
 use Jeidison\PdfSigner\Xref\Xref;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class Struct
 {
     private PdfDocument $pdfDocument;
-    private ?int $depth = null;
+
     private string $separator = "\r\n";
+
     private const REGEX_PDF_VERSION = '/^%PDF-\d+\.\d+$/';
 
     public static function new(): static
@@ -24,18 +28,11 @@ class Struct
         return $this;
     }
 
-    public function withDepth(?int $depth): self
-    {
-        $this->depth = $depth;
-
-        return $this;
-    }
-
     public function structure(): array
     {
         $pdfVersion = strtok($this->pdfDocument->getBuffer()->raw(), $this->separator);
         if ($pdfVersion === false) {
-            throw new Exception("Failed to get PDF version");
+            throw new Exception('Failed to get PDF version');
         }
 
         if (preg_match(self::REGEX_PDF_VERSION, $pdfVersion, $matches) !== 1) {
@@ -74,7 +71,6 @@ class Struct
         }
 
         [$xrefTable, $trailerObject, $minPdfVersion] = Xref::new()
-            ->withDepth($this->depth)
             ->withXRefPos($xrefPos)
             ->withPdfDocument($this->pdfDocument)
             ->getXref();
