@@ -5,7 +5,6 @@ namespace Jeidison\PdfSigner;
 use Jeidison\PdfSigner\PdfValue\PDFValueSimple;
 use Jeidison\PdfSigner\PdfValue\PDFValueString;
 use Jeidison\PdfSigner\Utils\Date;
-use function Jeidison\PdfSigner\helpers\timestamp_to_pdfdatestring;
 
 // The maximum signature length, needed to create a placeholder to calculate the range of bytes
 // that will cover the signature.
