@@ -62,7 +62,7 @@ class Struct
 
         $xrefPos = intval($matches[1]);
 
-        if ($xrefPos === 0) { // todo: verificar se pode acontecer isso, acho que podemos lançar uma exception nesses casos.
+        if ($xrefPos === 0) {
             return [
                 'trailer' => null,
                 'version' => substr($pdfVersion, 1),

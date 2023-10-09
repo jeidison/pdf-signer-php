@@ -463,35 +463,17 @@ class PdfDocument
         return true;
     }
 
-    public function generate_content_to_xref($rebuild = false)
+    public function generate_content_to_xref()
     {
-        if ($rebuild === true) {
-            $result = new Buffer('%' . $this->pdfVersion.__EOL);
-        } else {
-            $result = new Buffer($this->buffer);
-        }
-
+        $result = new Buffer($this->buffer);
         $offsets = [];
         $offsets[0] = 0;
 
         $offset = $result->size();
-
-        if ($rebuild === true) {
-            for ($i = 0; $i <= $this->maxOid; ++$i) {
-                if (($object = $this->get_object($i)) === false) {
-                    continue;
-                }
-
-                $result->data($object->to_pdf_entry());
-                $offsets[$i] = $offset;
-                $offset = $result->size();
-            }
-        } else {
-            foreach ($this->pdfObjects as $objId => $object) {
-                $result->data($object->to_pdf_entry());
-                $offsets[$objId] = $offset;
-                $offset = $result->size();
-            }
+        foreach ($this->pdfObjects as $objId => $object) {
+            $result->data($object->to_pdf_entry());
+            $offsets[$objId] = $offset;
+            $offset = $result->size();
         }
 
         return [$result, $offsets];

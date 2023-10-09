@@ -11,7 +11,6 @@ use Jeidison\PdfSigner\Xref\Xref;
 class Signer
 {
     private ?int $depth = null;
-    private string $pdfContent;
     private ?Signature $signature;
 
     private PdfDocument $pdfDocument;
@@ -30,7 +29,9 @@ class Signer
 
     public function withContent(string $pdfContent): self
     {
-        $this->pdfContent = $pdfContent;
+        $pdfDocument = new PdfDocument();
+        $pdfDocument->setBufferFromString($pdfContent);
+        $this->withPdfDocument($pdfDocument);
 
         return $this;
     }
@@ -51,12 +52,9 @@ class Signer
 
     public function prepareDocumentToSign(): self
     {
-        $pdfDocument = new PdfDocument();
-        $pdfDocument->setBufferFromString($this->pdfContent);
-
         $structure = Struct::new()
             ->withDepth($this->depth)
-            ->withPdfDocument($pdfDocument)
+            ->withPdfDocument($this->pdfDocument)
             ->structure();
 
         $trailer      = $structure['trailer'];
@@ -65,6 +63,7 @@ class Signer
         $xrefPosition = $structure['xrefposition'];
         $revisions    = $structure['revisions'];
 
+        $pdfDocument = $this->pdfDocument;
         $pdfDocument->setPdfVersion($version);
         $pdfDocument->setTrailerObject($trailer);
         $pdfDocument->setXrefPosition($xrefPosition);
@@ -77,7 +76,6 @@ class Signer
         $pdfDocument->setMaxOid(array_pop($oids));
         $pdfDocument->acquire_pages_info();
 
-        $this->pdfDocument = $pdfDocument;
         $this->signature->withPdfDocument($pdfDocument);
 
         return $this;
@@ -87,11 +85,11 @@ class Signer
     {
         $certFileContent = file_get_contents($pathCertificate);
         if ($certFileContent === false) {
-            throw new Exception('could not read file ' . $pathCertificate);
+            throw new Exception('Could not read file ' . $pathCertificate);
         }
 
         if (openssl_pkcs12_read($certFileContent, $certificate, $password) === false) {
-            throw new Exception('could not get the certificates from file ' . openssl_error_string());
+            throw new Exception('Could not get the certificates from file ' . openssl_error_string());
         }
 
         $certInfo = openssl_x509_parse($certificate['cert']);
@@ -139,7 +137,7 @@ class Signer
         return false;
     }
 
-    private function to_pdf_file_b(bool $rebuild = false): Buffer
+    private function to_pdf_file_b(): Buffer
     {
         if (!$this->signature->hasCertificate()) {
             return $this->pdfDocument->getBuffer();
@@ -155,7 +153,7 @@ class Signer
             throw new Exception('could not generate the signed document');
         }
 
-        [$_doc_to_xref, $_obj_offsets] = $this->pdfDocument->generate_content_to_xref($rebuild);
+        [$_doc_to_xref, $_obj_offsets] = $this->pdfDocument->generate_content_to_xref();
         $xrefOffset = $_doc_to_xref->size();
 
         $_obj_offsets[$signature->get_oid()] = $_doc_to_xref->size();
@@ -196,12 +194,7 @@ class Signer
             }
 
             $trailer->set_stream($xref['stream'], false);
-
-            if ($rebuild === false) {
-                $trailer['Prev'] = $this->pdfDocument->getXrefPosition();
-            } elseif (isset($trailer['Prev'])) {
-                unset($trailer['Prev']);
-            }
+            $trailer['Prev'] = $this->pdfDocument->getXrefPosition();
 
             $_doc_from_xref = new Buffer($trailer->to_pdf_entry());
             $_doc_from_xref->data('startxref'.PHP_EOL.$xrefOffset.PHP_EOL.'%%EOF'.PHP_EOL);
@@ -209,10 +202,7 @@ class Signer
             $xrefContent = Xref::new()->build_xref($_obj_offsets);
 
             $this->pdfDocument->getTrailerObject()['Size'] = $this->pdfDocument->getMaxOid() + 1;
-
-            if ($rebuild === false) {
-                $this->pdfDocument->getTrailerObject()['Prev'] = $this->pdfDocument->getXrefPosition();
-            }
+            $this->pdfDocument->getTrailerObject()['Prev'] = $this->pdfDocument->getXrefPosition();
 
             $_doc_from_xref = new Buffer($xrefContent);
             $_doc_from_xref->data("trailer\n" . $this->pdfDocument->getTrailerObject());
