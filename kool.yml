@@ -1,0 +1,15 @@
+# Here you can define shortcuts and aliases to common tasks (commands)
+# you will run in your local environment or CI or deploy.
+#  Use the scripts defined below with:
+#    $ kool run <script>
+# Learn more at: https://kool.dev/docs/getting-started/how-it-works#koolyml
+scripts:
+  php: kool exec app php
+  composer: kool exec app composer
+  pest: kool exec app php ./vendor/bin/pest
+  pint: kool exec app php ./vendor/bin/pint
+  rector: kool exec app php vendor/bin/rector
+  bash: docker compose exec app bash
+  setup:
+    - kool start
+    # - add more setup commands

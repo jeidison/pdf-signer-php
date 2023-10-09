@@ -1,0 +1,42 @@
+{
+    "name": "jeidison/pdf-signer",
+    "description": "Project to add digital signature in pdf files",
+    "type": "library",
+    "require": {
+        "php": "^8.2",
+        "ext-openssl": "*",
+        "ext-zlib": "*",
+        "ext-fileinfo": "*",
+        "ramsey/uuid": "5.x-dev"
+    },
+    "require-dev": {
+        "pestphp/pest": "v2.20.0",
+        "laravel/pint": "v1.13.2",
+        "symfony/var-dumper": "7.0.x-dev"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Jeidison\\PdfSigner\\": "src/"
+        },
+        "files": [
+            "src/Utils/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jeidison Farias"
+        }
+    ],
+    "minimum-stability": "dev",
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

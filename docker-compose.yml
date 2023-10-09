@@ -1,0 +1,29 @@
+version: "3.8"
+#
+# Services definitions
+#
+services:
+  app:
+    build: .docker
+    ports:
+      - "${KOOL_APP_PORT:-80}:80"
+      - "9003:9003"
+    environment:
+      ASUSER: "${KOOL_ASUSER:-0}"
+      UID: "${UID:-0}"
+      ENABLE_XDEBUG: "true"
+      XDEBUG_MODE: "debug,develop,coverage"
+      XDEBUG_CONFIG: "client_host=host.docker.internal"
+    volumes:
+      - .:/app:delegated
+    networks:
+      - kool_local
+      - kool_global
+#
+# Networks definitions
+#
+networks:
+  kool_local:
+  kool_global:
+    external: true
+    name: "${KOOL_GLOBAL_NETWORK:-kool_global}"
