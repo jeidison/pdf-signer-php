@@ -5,17 +5,9 @@ namespace Jeidison\PdfSigner;
 use ArrayAccess;
 use Jeidison\PdfSigner\PdfValue\PDFValueObject;
 use Jeidison\PdfSigner\PdfValue\PDFValueSimple;
+use Stringable;
 
-// The character used to end lines
-if (! defined('__EOL')) {
-    define('__EOL', "\n");
-}
-
-/**
- * Class to gather the information of a PDF object: the OID, the definition and the stream. The purpose is to
- *   ease the generation of the PDF entries for an individual object.
- */
-class PDFObject implements ArrayAccess, \Stringable
+class PDFObject implements ArrayAccess, Stringable
 {
     protected static $_revisions;
 
@@ -94,14 +86,14 @@ endstream
      */
     public function to_pdf_entry()
     {
-        return $this->_oid . ' 0 obj'.__EOL.
-                $this->_value.__EOL.
+        return $this->_oid . ' 0 obj'.PHP_EOL.
+                $this->_value.PHP_EOL.
                 ($this->_stream === null ? '' :
                     "stream\r\n".
                     $this->_stream.
-                    __EOL.'endstream'.__EOL
+                    PHP_EOL.'endstream'.PHP_EOL
                 ).
-                'endobj'.__EOL;
+                'endobj'.PHP_EOL;
     }
 
     /**
