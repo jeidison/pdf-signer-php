@@ -204,7 +204,7 @@ class Signer
             }
 
             $_doc_from_xref = new Buffer($trailer->to_pdf_entry());
-            $_doc_from_xref->data('startxref'.__EOL.$xrefOffset.__EOL.'%%EOF'.__EOL);
+            $_doc_from_xref->data('startxref'.PHP_EOL.$xrefOffset.PHP_EOL.'%%EOF'.PHP_EOL);
         } else {
             $xrefContent = Xref::new()->build_xref($_obj_offsets);
 

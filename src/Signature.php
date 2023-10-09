@@ -129,7 +129,7 @@ class Signature
         if ($imageFileName !== null) {
             $pagesize = $this->pdfDocument->get_page_size($pageToAppear);
             $pagesize = explode(' ', (string) $pagesize[0]->val());
-            $pagesizeH = (float) (''.$pagesize[3]) - (float) (''.$pagesize[1]);
+            $pagesizeH = (float) ($pagesize[3]) - (float) ($pagesize[1]);
 
             $bbox = [0, 0, $rectToAppear[2] - $rectToAppear[0], $rectToAppear[3] - $rectToAppear[1]];
             $formObject = $this->pdfDocument->create_object([
