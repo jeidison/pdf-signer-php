@@ -72,7 +72,7 @@ class Signature
         return ! empty($this->certificate['cert']);
     }
 
-    public function generateSignatureInDocument(): PDFSignatureObject
+    public function generateSignatureInDocument(): SignatureObject
     {
         $imageFileName = null;
         $rectToAppear = [0, 0, 0, 0];
@@ -87,7 +87,7 @@ class Signature
         $trailerObject = $this->pdfDocument->getTrailerObject();
         $root = $trailerObject['Root'];
 
-        if (($root === false) || (($root = $root->get_object_referenced()) === false)) {
+        if (($root === false) || (($root = $root->getObjectReferenced()) === false)) {
             throw new Exception('Could not find the root object from the trailer');
         }
 
@@ -108,9 +108,9 @@ class Signature
 
         $annots = &$pageObj['Annots'];
         $pageRotation = $pageObj['Rotate'] ?? new PDFValueSimple(0);
-        if ((($referenced = $annots->get_object_referenced()) !== false) && (! is_array($referenced))) {
+        if ((($referenced = $annots->getObjectReferenced()) !== false) && (! is_array($referenced))) {
             $newannots = $this->pdfDocument->createObject(
-                $this->pdfDocument->getObject($referenced)->get_value()
+                $this->pdfDocument->getObject($referenced)->getValue()
             );
         } else {
             $newannots = $this->pdfDocument->createObject(new PDFValueList());
@@ -129,7 +129,7 @@ class Signature
         ]
         );
 
-        $signature = $this->pdfDocument->createObject([], PDFSignatureObject::class, false);
+        $signature = $this->pdfDocument->createObject([], SignatureObject::class, false);
         $annotationObject['V'] = new PDFValueReference($signature->getOid());
 
         if ($imageFileName !== null) {
@@ -206,20 +206,19 @@ class Signature
             $rootObj['AcroForm'] = new PDFValueObject();
         }
 
-        $acroform = $rootObj['AcroForm'];
-        if ((($referenced = $acroform->get_object_referenced()) !== false) && (! is_array($referenced))) {
-            $acroform = $this->pdfDocument->getObject($referenced);
-            $updatedObjects[] = $acroform;
+        $acroForm = $rootObj['AcroForm'];
+        if ((($referenced = $acroForm->getObjectReferenced()) !== false) && (! is_array($referenced))) {
+            $updatedObjects[] = $acroForm = $this->pdfDocument->getObject($referenced);
         } else {
             $updatedObjects[] = $rootObj;
         }
 
-        $acroform['SigFlags'] = 3;
-        if (! isset($acroform['Fields'])) {
-            $acroform['Fields'] = new PDFValueList();
+        $acroForm['SigFlags'] = 3;
+        if (! isset($acroForm['Fields'])) {
+            $acroForm['Fields'] = new PDFValueList();
         }
 
-        if (! $acroform['Fields']->push(new PDFValueReference($annotationObject->getOid()))) {
+        if (! $acroForm['Fields']->push(new PDFValueReference($annotationObject->getOid()))) {
             throw new Exception('Could not create the signature field');
         }
 
@@ -252,7 +251,6 @@ class Signature
         }
 
         $signature = file_get_contents($tempFilename);
-
         $signature = substr($signature, $filesizeOriginal);
         $signature = substr($signature, (strpos($signature, "%%EOF\n\n------") + 13));
 

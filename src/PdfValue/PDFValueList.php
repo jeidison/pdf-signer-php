@@ -29,7 +29,7 @@ class PDFValueList extends PDFValue
         }
     }
 
-    public function get_object_referenced(): array|false
+    public function getObjectReferenced(): array|false
     {
         $ids = [];
         $plainTextVal = implode(' ', $this->value);

@@ -2,6 +2,9 @@
 
 namespace Jeidison\PdfSigner;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class Metadata
 {
     private ?string $name = null;

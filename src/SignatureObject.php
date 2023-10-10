@@ -6,7 +6,7 @@ use Jeidison\PdfSigner\PdfValue\PDFValueSimple;
 use Jeidison\PdfSigner\PdfValue\PDFValueString;
 use Jeidison\PdfSigner\Utils\Date;
 
-class PDFSignatureObject extends PDFObject
+class SignatureObject extends PDFObject
 {
     const BYTE_RANGE_SIZE = 68;
 

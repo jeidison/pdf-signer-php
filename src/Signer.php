@@ -8,6 +8,9 @@ use Jeidison\PdfSigner\PdfValue\PDFValueHexString;
 use Jeidison\PdfSigner\PdfValue\PDFValueSimple;
 use Jeidison\PdfSigner\Xref\Xref;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class Signer
 {
     private ?Signature $signature;
@@ -114,10 +117,13 @@ class Signer
 
         $signature = $this->signature->generateSignatureInDocument();
 
-        [$docToXref, $_obj_offsets] = $this->pdfDocument->generate_content_to_xref();
+        [$docToXref, $objOffSets] = Xref::new()
+            ->withPdfDocument($this->pdfDocument)
+            ->generateContentToXref();
+
         $xrefOffset = $docToXref->size();
 
-        $_obj_offsets[$signature->getOid()] = $docToXref->size();
+        $objOffSets[$signature->getOid()] = $docToXref->size();
         $xrefOffset += strlen($signature->toPdfEntry());
 
         $docVersionString = str_replace('PDF-', '', $this->pdfDocument->getPdfVersion());
@@ -134,9 +140,9 @@ class Signer
         if ($targetVersion >= '1.5') {
             $trailer = $this->pdfDocument->createObject(clone $this->pdfDocument->getTrailerObject());
 
-            $_obj_offsets[$trailer->getOid()] = $xrefOffset;
+            $objOffSets[$trailer->getOid()] = $xrefOffset;
 
-            $xref = Xref::new()->buildXref15($_obj_offsets);
+            $xref = Xref::new()->buildXref15($objOffSets);
 
             $trailer['Index'] = explode(' ', (string) $xref['Index']);
             $trailer['W'] = $xref['W'];
@@ -160,7 +166,7 @@ class Signer
             $docFromXref = new Buffer($trailer->toPdfEntry());
             $docFromXref->data('startxref'.PHP_EOL.$xrefOffset.PHP_EOL.'%%EOF'.PHP_EOL);
         } else {
-            $xrefContent = Xref::new()->buildXref($_obj_offsets);
+            $xrefContent = Xref::new()->buildXref($objOffSets);
 
             $this->pdfDocument->getTrailerObject()['Size'] = $this->pdfDocument->getMaxOid() + 1;
             $this->pdfDocument->getTrailerObject()['Prev'] = $this->pdfDocument->getXrefPosition();

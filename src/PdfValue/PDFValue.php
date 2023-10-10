@@ -67,12 +67,12 @@ abstract class PDFValue implements ArrayAccess, Stringable
         return false;
     }
 
-    public function get_int(): bool
+    public function getInt(): bool
     {
         return false;
     }
 
-    public function get_object_referenced(): mixed
+    public function getObjectReferenced(): mixed
     {
         return false;
     }
@@ -82,52 +82,36 @@ abstract class PDFValue implements ArrayAccess, Stringable
         return null;
     }
 
-    /**
-     * Function that converts standard types into PDFValue
-     *  - integer, double are translated into PDFValueSimple
-     *  - string beginning with /, is translated into PDFValueType
-     *  - string without separator (e.g. "\t\n ") are translated into PDFValueSimple
-     *  - other strings are translated into PDFValueString
-     *  - array is translated into PDFValueList, and its inner elements are also converted.
-     *
-     * @param  mixed  $value a standard php object (e.g. string, integer, double, array, etc.)
-     * @return PDFValue an object of type PDFValue*, depending on the
-     */
     protected static function convert(mixed $value): PDFValue
     {
         switch (gettype($value)) {
             case 'integer':
             case 'double':
-                $value = new PDFValueSimple($value);
-                break;
+                return new PDFValueSimple($value);
             case 'string':
                 if ($value[0] === '/') {
-                    $value = new PDFValueType(substr($value, 1));
+                    return new PDFValueType(substr($value, 1));
                 } elseif (preg_match("/\s/ms", $value) === 1) {
-                    $value = new PDFValueString($value);
-                } else {
-                    $value = new PDFValueSimple($value);
+                    return new PDFValueString($value);
                 }
 
-                break;
+                return new PDFValueSimple($value);
             case 'array':
                 if ($value === []) {
-                    $value = new PDFValueList();
-                } else {
-                    $obj = PDFValueObject::fromArray($value);
-                    if ($obj !== null) {
-                        $value = $obj;
-                    } else {
-                        $list = [];
-                        foreach ($value as $v) {
-                            $list[] = self::convert($v);
-                        }
-
-                        $value = new PDFValueList($list);
-                    }
+                    return new PDFValueList();
                 }
 
-                break;
+                $obj = PDFValueObject::fromArray($value);
+                if ($obj != null) {
+                    return $obj;
+                }
+
+                $list = [];
+                foreach ($value as $v) {
+                    $list[] = self::convert($v);
+                }
+
+                return new PDFValueList($list);
         }
 
         return $value;

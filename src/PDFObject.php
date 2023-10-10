@@ -11,15 +11,11 @@ use Stringable;
 
 class PDFObject implements ArrayAccess, Stringable
 {
-    protected static $_revisions;
-
-    protected static $_xref_table_version;
-
     protected mixed $stream = null;
 
-    protected ?PDFValue $value = null;
+    protected null|array|PDFValue $value = null;
 
-    protected $_generation;
+    protected int $generation;
 
     public function __construct(protected $oid, array|PDFValue $value = null, $generation = 0)
     {
@@ -37,7 +33,7 @@ class PDFObject implements ArrayAccess, Stringable
         }
 
         $this->value = $value;
-        $this->_generation = $generation;
+        $this->generation = $generation;
     }
 
     public function getKeys(): array
@@ -45,14 +41,14 @@ class PDFObject implements ArrayAccess, Stringable
         return $this->value->getKeys();
     }
 
-    public function setOid($oid)
+    public function setOid($oid): void
     {
         $this->oid = $oid;
     }
 
-    public function get_generation()
+    public function getGeneration(): int
     {
-        return $this->_generation;
+        return $this->generation;
     }
 
     public function __toString(): string
@@ -69,7 +65,7 @@ endstream
             "endobj\n";
     }
 
-    public function toPdfEntry()
+    public function toPdfEntry(): string
     {
         return $this->oid.' 0 obj'.PHP_EOL.
                 $this->value.PHP_EOL.
@@ -86,7 +82,7 @@ endstream
         return $this->oid;
     }
 
-    public function get_value()
+    public function getValue()
     {
         return $this->value;
     }

@@ -28,24 +28,9 @@ use Jeidison\PdfSigner\PdfValue\PDFValueObject;
 use Jeidison\PdfSigner\PdfValue\PDFValueSimple;
 use Jeidison\PdfSigner\PdfValue\PDFValueString;
 use Jeidison\PdfSigner\PdfValue\PDFValueType;
+use Stringable;
 
-/**
- * Class devoted to parse a single PDF object
- *
- * A PDF Document is made of objects with the following structure (e.g for object 1 version 0)
- *
- * 1 0 obj
- * ...content...
- * [stream
- * ...stream...
- * endstream]
- * endobject
- *
- * This PDF class transforms the definition string within ...content... into a PDFValue class.
- *
- * - At the end, it is a simple syntax checker
- */
-class PDFObjectParser implements \Stringable
+class ObjectParser implements Stringable
 {
     // Possible tokens in a PDF document
     final public const T_NOTOKEN = 0;
@@ -102,7 +87,7 @@ class PDFObjectParser implements \Stringable
         self::T_COMMENT,
     ];
 
-    protected $_buffer = null;
+    protected ?StreamReader $_buffer = null;
 
     protected $_c = false;
 
@@ -117,7 +102,7 @@ class PDFObjectParser implements \Stringable
      *
      * @return token the current token
      */
-    public function current_token()
+    public function currentToken()
     {
         return $this->_tt;
     }
@@ -140,7 +125,7 @@ class PDFObjectParser implements \Stringable
     /**
      * Prepares the parser to analythe the text (i.e. prepares the parsing variables)
      */
-    protected function start(&$buffer)
+    protected function start($buffer)
     {
         $this->_buffer = $buffer;
         $this->_c = false;
@@ -159,7 +144,7 @@ class PDFObjectParser implements \Stringable
     /**
      * Parses the document
      */
-    public function parse(&$stream)
+    public function parse($stream)
     {
         $this->start($stream);
         $this->nexttoken();
@@ -175,11 +160,6 @@ class PDFObjectParser implements \Stringable
         return $this->parse($stream);
     }
 
-    /**
-     * Simple output of the object
-     *
-     * @return output the output of the object
-     */
     public function __toString(): string
     {
         return 'pos: '.$this->_buffer->getpos().sprintf(', c: %s, n: %s, t: %s, tt: ', $this->_c, $this->_n, $this->_t).
@@ -497,13 +477,5 @@ class PDFObjectParser implements \Stringable
         }
 
         return false;
-    }
-
-    public function tokenize()
-    {
-        $this->start();
-        while ($this->nexttoken() !== false) {
-            echo $this->_t.PHP_EOL;
-        }
     }
 }

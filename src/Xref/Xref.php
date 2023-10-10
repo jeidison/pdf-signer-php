@@ -2,6 +2,7 @@
 
 namespace Jeidison\PdfSigner\Xref;
 
+use Jeidison\PdfSigner\Buffer;
 use Jeidison\PdfSigner\PdfDocument;
 
 /**
@@ -139,5 +140,21 @@ class Xref
         $result .= sprintf('%s %d%s%s', $iK, $count, PHP_EOL, $references);
 
         return "xref\n".$result;
+    }
+
+    public function generateContentToXref(): array
+    {
+        $result = new Buffer($this->pdfDocument->getBuffer()->raw());
+        $offsets = [];
+        $offsets[0] = 0;
+
+        $offset = $result->size();
+        foreach ($this->pdfDocument->getPdfObjects() as $objId => $object) {
+            $result->data($object->toPdfEntry());
+            $offsets[$objId] = $offset;
+            $offset = $result->size();
+        }
+
+        return [$result, $offsets];
     }
 }

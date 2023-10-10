@@ -9,6 +9,9 @@ use Jeidison\PdfSigner\PdfValue\PDFValueString;
 use Jeidison\PdfSigner\Utils\Date;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * @author Jeidison Farias <jeidison.farias@gmail.com>
+ **/
 class PdfDocument
 {
     /** @var array<PDFObject> */
@@ -125,14 +128,14 @@ class PdfDocument
     public function acquire_pages_info(): void
     {
         $root = $this->trailerObject['Root'];
-        if (($root === false) || (($root = $root->get_object_referenced()) === false)) {
+        if (($root === false) || (($root = $root->getObjectReferenced()) === false)) {
             throw new Exception('could not find the root object from the trailer');
         }
 
         $root = $this->getObject($root);
         if ($root !== false) {
             $pages = $root['Pages'];
-            if (($pages === false) || (($pages = $pages->get_object_referenced()) === false)) {
+            if (($pages === false) || (($pages = $pages->getObjectReferenced()) === false)) {
                 throw new Exception('could not find the pages for the document');
             }
 
@@ -161,7 +164,7 @@ class PdfDocument
     {
         $oid = $pdfObject->getOid();
 
-        if (isset($this->pdfObjects[$oid]) && $this->pdfObjects[$oid]->get_generation() > $pdfObject->get_generation()) {
+        if (isset($this->pdfObjects[$oid]) && $this->pdfObjects[$oid]->getGeneration() > $pdfObject->getGeneration()) {
             return false;
         }
 
@@ -178,7 +181,7 @@ class PdfDocument
     {
         if ($originalVersion === true) {
             // Prioritizing the original version
-            $object = $this->find_object($oid);
+            $object = $this->findObject($oid);
             if ($object === false) {
                 $object = $this->pdfObjects[$oid] ?? false;
             }
@@ -187,14 +190,14 @@ class PdfDocument
             // Prioritizing the new versions
             $object = $this->pdfObjects[$oid] ?? false;
             if ($object === false) {
-                $object = $this->find_object($oid);
+                $object = $this->findObject($oid);
             }
         }
 
         return $object;
     }
 
-    public function find_object($oid): ?PDFObject
+    public function findObject(int $oid): ?PDFObject
     {
         if ($oid === 0) {
             return null;
@@ -210,18 +213,17 @@ class PdfDocument
             return $this->findObjectAtPos($oid, $objectOffset);
         }
 
-        return $this->find_object_in_objstm($objectOffset['stmoid'], $objectOffset['pos'], $oid);
+        return $this->findObjectInObjStm($objectOffset['stmoid'], $objectOffset['pos'], $oid);
     }
 
-    public function find_object_in_objstm($objstmOid, $objpos, $oid)
+    public function findObjectInObjStm($objstmOid, $objpos, $oid): PDFObject
     {
-        $objstm = $this->find_object($objstmOid);
+        $objstm = $this->findObject($objstmOid);
         if ($objstm === false) {
             throw new Exception('could not get object stream '.$objstmOid);
         }
 
         if (($objstm['Extends'] ?? false !== false)) {
-            // TODO: support them
             throw new Exception('not supporting extended object streams at this time');
         }
 
@@ -284,19 +286,19 @@ class PdfDocument
         }
 
         if ($streamPending !== false) {
-            $length = $object['Length']->get_int();
+            $length = $object['Length']->getInt();
             if ($length === false) {
-                $lengthObjectId = $object['Length']->get_object_referenced();
+                $lengthObjectId = $object['Length']->getObjectReferenced();
                 if ($lengthObjectId === false) {
                     throw new Exception('could not get stream for object ');
                 }
 
-                $lengthObject = $this->find_object($lengthObjectId);
+                $lengthObject = $this->findObject($lengthObjectId);
                 if ($lengthObject === false) {
                     throw new Exception('could not get object '.$oid);
                 }
 
-                $length = $lengthObject->get_value()->get_int();
+                $length = $lengthObject->getValue()->getInt();
             }
 
             if ($length === false) {
@@ -324,22 +326,22 @@ class PdfDocument
         }
 
         if ($foundObjId !== $expectedObjId) {
-            throw new Exception(sprintf('pdf structure is corrupt: found obj %d while searching for obj %s (at %s)', $foundObjId, $expectedObjId, $offset));
+            throw new Exception(sprintf('Pdf structure is corrupt: found obj %d while searching for obj %s (at %s)', $foundObjId, $expectedObjId, $offset));
         }
 
         $offset += strlen($foundObjHeader);
 
-        $parser = new PDFObjectParser();
+        $parser = new ObjectParser();
         $stream = new StreamReader($this->buffer, $offset);
 
         $objParsed = $parser->parse($stream);
         if ($objParsed === false) {
-            throw new Exception(sprintf('object %d could not be parsed', $expectedObjId));
+            throw new Exception(sprintf('Object %d could not be parsed', $expectedObjId));
         }
 
-        switch ($parser->current_token()) {
-            case PDFObjectParser::T_STREAM_BEGIN:
-            case PDFObjectParser::T_OBJECT_END:
+        switch ($parser->currentToken()) {
+            case ObjectParser::T_STREAM_BEGIN:
+            case ObjectParser::T_OBJECT_END:
                 break;
             default:
                 throw new Exception('Malformed object');
@@ -362,7 +364,7 @@ class PdfDocument
         switch ($object['Type']->val()) {
             case 'Pages':
                 $kids = $object['Kids'];
-                $kids = $kids->get_object_referenced();
+                $kids = $kids->getObjectReferenced();
                 if ($kids !== false) {
                     if (isset($object['MediaBox'])) {
                         $info['size'] = $object['MediaBox']->val();
@@ -410,7 +412,7 @@ class PdfDocument
     public function update_mod_date(DateTime $date = null)
     {
         $root = $this->trailerObject['Root'];
-        if (($root === false) || (($root = $root->get_object_referenced()) === false)) {
+        if (($root === false) || (($root = $root->getObjectReferenced()) === false)) {
             throw new Exception('Could not find the root object from the trailer');
         }
 
@@ -435,7 +437,7 @@ class PdfDocument
         }
 
         $info = $this->trailerObject['Info'];
-        if (($info === false) || (($info = $info->get_object_referenced()) === false)) {
+        if (($info === false) || (($info = $info->getObjectReferenced()) === false)) {
             throw new Exception('could not find the info object from the trailer');
         }
 

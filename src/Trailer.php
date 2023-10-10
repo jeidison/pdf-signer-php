@@ -40,9 +40,9 @@ class Trailer
 
         $trailerStr = $matches[1];
         try {
-            $parser = new PDFObjectParser();
+            $parser = new ObjectParser();
 
-            return $parser->parsestr($trailerStr);
+            return $parser->parseStr($trailerStr);
         } catch (Exception $e) {
             throw new Exception('Trailer is not valid.', previous: $e);
         }

@@ -36,7 +36,7 @@ class Buffer implements Stringable
         return $this->bufferLen;
     }
 
-    public function raw()
+    public function raw(): ?string
     {
         return $this->buffer;
     }

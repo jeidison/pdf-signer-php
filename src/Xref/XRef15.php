@@ -145,6 +145,6 @@ class XRef15
             }
         }
 
-        return [$xrefTable, $xrefO->get_value(), '1.5'];
+        return [$xrefTable, $xrefO->getValue(), '1.5'];
     }
 }

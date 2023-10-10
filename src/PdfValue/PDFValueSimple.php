@@ -15,7 +15,7 @@ class PDFValueSimple extends PDFValue
         return false;
     }
 
-    public function get_object_referenced(): mixed
+    public function getObjectReferenced(): mixed
     {
         if (! preg_match('/^\s*([0-9]+)\s+([0-9]+)\s+R\s*$/ms', (string) $this->value, $matches)) {
             return false;
@@ -24,7 +24,7 @@ class PDFValueSimple extends PDFValue
         return (int) $matches[1];
     }
 
-    public function get_int(): bool
+    public function getInt(): bool
     {
         if (! is_numeric($this->value)) {
             return false;
