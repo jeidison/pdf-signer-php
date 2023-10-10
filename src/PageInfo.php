@@ -122,5 +122,4 @@ class PageInfo
 
         return $this->pdfDocument->getObject($this->pagesInfo[$i]['id']);
     }
-
 }

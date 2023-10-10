@@ -49,6 +49,13 @@ class Signer
         return $this;
     }
 
+    public function withSignatureAppearance(SignatureAppearance $appearance): self
+    {
+        $this->signature->withAppearance($appearance);
+
+        return $this;
+    }
+
     private function prepareDocumentToSign(): void
     {
         $structure = Struct::new()

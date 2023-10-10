@@ -4,6 +4,7 @@ namespace Jeidison\PdfSigner\Utils;
 
 use Exception;
 use finfo;
+use Jeidison\PdfSigner\PDFObject;
 use Jeidison\PdfSigner\PdfValue\PDFValueList;
 use Jeidison\PdfSigner\PdfValue\PDFValueObject;
 use Jeidison\PdfSigner\PdfValue\PDFValueReference;
@@ -77,16 +78,17 @@ final class Img
                 $objects[] = $smask;
             }
 
-            $image['SMask'] = new PDFValueReference($smask->get_oid());
+            /** @var PDFObject $smask */
+            $image['SMask'] = new PDFValueReference($smask->getOid());
         }
 
-        $image->set_stream($info['data']);
+        $image->setStream($info['data']);
         array_unshift($objects, $image);
 
         return $objects;
     }
 
-    public static function add_image($objectFactory, $filename, $x = 0, $y = 0, $w = 0, $h = 0, $angle = 0, $keepProportions = true)
+    public static function addImage(callable $objectFactory, $filename, $x = 0, $y = 0, $w = 0, $h = 0, $angle = 0, $keepProportions = true)
     {
         if (empty($filename)) {
             throw new Exception('invalid image name or stream');
@@ -151,6 +153,7 @@ final class Img
             $h = $w * $info['h'] / $info['w'];
         }
 
+        /** @var PDFObject $imagesObjects */
         $imagesObjects = self::create_image_objects($info, $objectFactory);
 
         // Generate the command to translate and scale the image
@@ -158,8 +161,9 @@ final class Img
             $angleRads = deg2rad($angle);
             $W = abs($w * cos($angleRads) + $h * sin($angleRads));
             $H = abs($w * sin($angleRads) + $h * cos($angleRads));
-            $rW = $W / $w;
-            $rH = $H / $h;
+
+            $rW = $w == 0 ? 0 : $W / $w;
+            $rH = $h == 0 ? 0 : $H / $h;
             $r = min($rW, $rH);
             $w = $W * $r;
             $h = $H * $r;
@@ -179,7 +183,7 @@ final class Img
         $resources = new PDFValueObject([
             'ProcSet' => ['/PDF', '/Text', '/ImageB', '/ImageC', '/ImageI'],
             'XObject' => new PDFValueObject([
-                $info['i'] => new PDFValueReference($imagesObjects[0]->get_oid()),
+                $info['i'] => new PDFValueReference($imagesObjects[0]->getOid()),
             ]),
         ]);
 

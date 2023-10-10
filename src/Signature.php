@@ -8,7 +8,6 @@ use Jeidison\PdfSigner\PdfValue\PDFValueObject;
 use Jeidison\PdfSigner\PdfValue\PDFValueReference;
 use Jeidison\PdfSigner\PdfValue\PDFValueSimple;
 use Jeidison\PdfSigner\PdfValue\PDFValueString;
-use Jeidison\PdfSigner\Utils\Img;
 use Jeidison\PdfSigner\Utils\Str;
 
 class Signature
@@ -23,9 +22,14 @@ class Signature
 
     private Metadata $metadata;
 
-    private ?array $appearance = null;
+    private SignatureAppearance $appearance;
 
     private PdfDocument $pdfDocument;
+
+    public function __construct()
+    {
+        $this->appearance = SignatureAppearance::new();
+    }
 
     public static function new(): self
     {
@@ -39,7 +43,7 @@ class Signature
         return $this;
     }
 
-    public function withAppearance(array $appearance): self
+    public function withAppearance(SignatureAppearance $appearance): self
     {
         $this->appearance = $appearance;
 
@@ -48,7 +52,7 @@ class Signature
 
     public function withoutAppearance(): self
     {
-        $this->appearance = null;
+        $this->appearance->withImage(null);
 
         return $this;
     }
@@ -74,15 +78,8 @@ class Signature
 
     public function generateSignatureInDocument(): SignatureObject
     {
-        $imageFileName = null;
-        $rectToAppear = [0, 0, 0, 0];
-        $pageToAppear = 0;
-
-        if ($this->appearance !== null) {
-            $imageFileName = $this->appearance['image'];
-            $rectToAppear = $this->appearance['rect'];
-            $pageToAppear = $this->appearance['page'];
-        }
+        $rectToAppear = $this->appearance->getReact();
+        $pageToAppear = $this->appearance->getPageToAppear();
 
         $trailerObject = $this->pdfDocument->getTrailerObject();
         $root = $trailerObject['Root'];
@@ -92,12 +89,12 @@ class Signature
         }
 
         $rootObj = $this->pdfDocument->getObject($root);
-        if ($rootObj === false) {
+        if ($rootObj == null) {
             throw new Exception('Invalid root object');
         }
 
         $pageObj = $this->pdfDocument->getPageInfo()->getPage($pageToAppear);
-        if ($pageObj === false) {
+        if ($pageObj == null) {
             throw new Exception('Invalid page');
         }
 
@@ -106,15 +103,15 @@ class Signature
             $pageObj['Annots'] = new PDFValueList();
         }
 
-        $annots = &$pageObj['Annots'];
-        $pageRotation = $pageObj['Rotate'] ?? new PDFValueSimple(0);
+        $annots = $pageObj['Annots'];
+
         if ((($referenced = $annots->getObjectReferenced()) !== false) && (! is_array($referenced))) {
-            $newannots = $this->pdfDocument->createObject(
+            $newAnnots = $this->pdfDocument->createObject(
                 $this->pdfDocument->getObject($referenced)->getValue()
             );
         } else {
-            $newannots = $this->pdfDocument->createObject(new PDFValueList());
-            $newannots->push($annots);
+            $newAnnots = $this->pdfDocument->createObject(new PDFValueList());
+            $newAnnots->push($annots);
         }
 
         $annotationObject = $this->pdfDocument->createObject([
@@ -126,80 +123,26 @@ class Signature
             'P' => new PDFValueReference($pageObj->getOid()),
             'Rect' => $rectToAppear,
             'F' => 132,
-        ]
-        );
+        ]);
 
         $signature = $this->pdfDocument->createObject([], SignatureObject::class, false);
         $annotationObject['V'] = new PDFValueReference($signature->getOid());
 
-        if ($imageFileName !== null) {
-            $pagesize = $this->pdfDocument->getPageInfo()->getPageSize($pageToAppear);
-            $pagesize = explode(' ', (string) $pagesize[0]->val());
-            $pagesizeH = (float) ($pagesize[3]) - (float) ($pagesize[1]);
+        if ($this->appearance->getImage() != null) {
+            $pageRotation = $pageObj['Rotate'] ?? new PDFValueSimple(0);
 
-            $bbox = [0, 0, $rectToAppear[2] - $rectToAppear[0], $rectToAppear[3] - $rectToAppear[1]];
-            $formObject = $this->pdfDocument->createObject([
-                'BBox' => $bbox,
-                'Subtype' => '/Form',
-                'Type' => '/XObject',
-                'Group' => [
-                    'Type' => '/Group',
-                    'S' => '/Transparency',
-                    'CS' => '/DeviceRGB',
-                ],
-            ]);
-
-            $containerFormObject = $this->pdfDocument->createObject([
-                'BBox' => $bbox,
-                'Subtype' => '/Form',
-                'Type' => '/XObject',
-                'Resources' => ['XObject' => [
-                    'n0' => new PDFValueSimple(''),
-                    'n2' => new PDFValueSimple(''),
-                ]],
-            ]);
-            $containerFormObject->setStream("q 1 0 0 1 0 0 cm /n0 Do Q\nq 1 0 0 1 0 0 cm /n2 Do Q\n", false);
-
-            $layerN0 = $this->pdfDocument->createObject([
-                'BBox' => [0.0, 0.0, 100.0, 100.0],
-                'Subtype' => '/Form',
-                'Type' => '/XObject',
-                'Resources' => new PDFValueObject(),
-            ]);
-
-            $layerN0->setStream('% DSBlank'.PHP_EOL, false);
-
-            $layerN2 = $this->pdfDocument->createObject([
-                'BBox' => $bbox,
-                'Subtype' => '/Form',
-                'Type' => '/XObject',
-                'Resources' => new PDFValueObject(),
-            ]);
-
-            $result = Img::add_image($this->pdfDocument->createObject(...), $imageFileName, $bbox[0], $bbox[1], $bbox[2], $bbox[3], $pageRotation->val());
-
-            $layerN2['Resources'] = $result['resources'];
-            $layerN2->setStream($result['command'], false);
-
-            $containerFormObject['Resources']['XObject']['n0'] = new PDFValueReference($layerN0->getOid());
-            $containerFormObject['Resources']['XObject']['n2'] = new PDFValueReference($layerN2->getOid());
-
-            $formObject['Resources'] = new PDFValueObject([
-                'XObject' => [
-                    'FRM' => new PDFValueReference($containerFormObject->getOid()),
-                ],
-            ]);
-            $formObject->setStream('/FRM Do', false);
-
-            $annotationObject['AP'] = ['N' => new PDFValueReference($formObject->getOid())];
-            $annotationObject['Rect'] = [$rectToAppear[0], $pagesizeH - $rectToAppear[1], $rectToAppear[2], $pagesizeH - $rectToAppear[3]];
+            $annotationObject = $this->appearance
+                ->withPageRotate($pageRotation)
+                ->withAnnotationObject($annotationObject)
+                ->withPdfDocument($this->pdfDocument)
+                ->generate();
         }
 
-        if (! $newannots->push(new PDFValueReference($annotationObject->getOid()))) {
+        if (! $newAnnots->push(new PDFValueReference($annotationObject->getOid()))) {
             throw new Exception('Could not update the page where the signature has to appear');
         }
 
-        $pageObj['Annots'] = new PDFValueReference($newannots->getOid());
+        $pageObj['Annots'] = new PDFValueReference($newAnnots->getOid());
         $updatedObjects[] = $pageObj;
 
         if (! isset($rootObj['AcroForm'])) {

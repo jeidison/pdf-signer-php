@@ -164,14 +164,14 @@ class PdfDocument
         if ($originalVersion === true) {
             // Prioritizing the original version
             $object = $this->findObject($oid);
-            if ($object === false) {
+            if ($object == null) {
                 $object = $this->pdfObjects[$oid] ?? false;
             }
 
         } else {
             // Prioritizing the new versions
             $object = $this->pdfObjects[$oid] ?? false;
-            if ($object === false) {
+            if ($object == null) {
                 $object = $this->findObject($oid);
             }
         }
