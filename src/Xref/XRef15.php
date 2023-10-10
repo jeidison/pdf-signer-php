@@ -45,7 +45,7 @@ class XRef15
             throw new Exception('Invalid xref table');
         }
 
-        $stream = $xrefO->get_stream(false);
+        $stream = $xrefO->getStream(false);
         if ($stream === null) {
             throw new Exception('Cross reference stream not found when parsing xref at position '.$this->xrefPosition);
         }

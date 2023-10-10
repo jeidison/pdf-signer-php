@@ -33,7 +33,7 @@ class PdfDocument
 
     protected int $maxOid = 0;
 
-    protected array $pagesInfo = [];
+    protected PageInfo $pageInfo;
 
     public function getPdfVersion(): string
     {
@@ -123,24 +123,6 @@ class PdfDocument
     public function setMaxOid(int $maxOid): void
     {
         $this->maxOid = $maxOid;
-    }
-
-    public function acquire_pages_info(): void
-    {
-        $root = $this->trailerObject['Root'];
-        if (($root === false) || (($root = $root->getObjectReferenced()) === false)) {
-            throw new Exception('could not find the root object from the trailer');
-        }
-
-        $root = $this->getObject($root);
-        if ($root !== false) {
-            $pages = $root['Pages'];
-            if (($pages === false) || (($pages = $pages->getObjectReferenced()) === false)) {
-                throw new Exception('could not find the pages for the document');
-            }
-
-            $this->pagesInfo = $this->_get_page_info($pages);
-        }
     }
 
     protected function getNewOid(): int
@@ -241,7 +223,7 @@ class PdfDocument
 
         $First = $First->get_int();
 
-        $stream = $objstm->get_stream(false);
+        $stream = $objstm->getStream(false);
         $index = substr((string) $stream, 0, $First);
         $index = explode(' ', trim($index));
 
@@ -352,63 +334,6 @@ class PdfDocument
         return new PDFObject($foundObjId, $objParsed, $foundObjGeneration);
     }
 
-    protected function _get_page_info($oid, $info = []): array|false
-    {
-        $object = $this->getObject($oid);
-        if ($object === false) {
-            throw new Exception('could not get information about the page');
-        }
-
-        $pageIds = [];
-
-        switch ($object['Type']->val()) {
-            case 'Pages':
-                $kids = $object['Kids'];
-                $kids = $kids->getObjectReferenced();
-                if ($kids !== false) {
-                    if (isset($object['MediaBox'])) {
-                        $info['size'] = $object['MediaBox']->val();
-                    }
-
-                    foreach ($kids as $kid) {
-                        $ids = $this->_get_page_info($kid, $info);
-                        if ($ids === false) {
-                            return false;
-                        }
-
-                        array_push($pageIds, ...$ids);
-                    }
-                } else {
-                    throw new Exception('could not get the pages');
-                }
-
-                break;
-            case 'Page':
-                if (isset($object['MediaBox'])) {
-                    $info['size'] = $object['MediaBox']->val();
-                }
-
-                return [['id' => $oid, 'info' => $info]];
-            default:
-                return false;
-        }
-
-        return $pageIds;
-    }
-
-    public function get_page($i)
-    {
-        if ($i < 0) {
-            return false;
-        }
-
-        if ($i >= count($this->pagesInfo)) {
-            return false;
-        }
-
-        return $this->getObject($this->pagesInfo[$i]['id']);
-    }
-
     public function updateModifyDate(DateTime $date = null): bool
     {
         $root = $this->trailerObject['Root'];
@@ -427,7 +352,7 @@ class PdfDocument
             $metadata = $rootObj['Metadata'];
             if ((($referenced = $metadata->get_object_referenced()) !== false) && (! is_array($referenced))) {
                 $metadata = $this->getObject($referenced);
-                $metaStream = $metadata->get_stream();
+                $metaStream = $metadata->getStream();
                 $metaStream = preg_replace('/<xmp:ModifyDate>([^<]*)<\/xmp:ModifyDate>/', '<xmp:ModifyDate>'.$date->format('c').'</xmp:ModifyDate>', (string) $metaStream);
                 $metaStream = preg_replace('/<xmp:MetadataDate>([^<]*)<\/xmp:MetadataDate>/', '<xmp:MetadataDate>'.$date->format('c').'</xmp:MetadataDate>', $metaStream);
                 $metaStream = preg_replace('/<xmpMM:InstanceID>([^<]*)<\/xmpMM:InstanceID>/', '<xmpMM:InstanceID>uuid:'.Uuid::uuid4()->toString().'</xmpMM:InstanceID>', $metaStream);
@@ -453,27 +378,15 @@ class PdfDocument
         return true;
     }
 
-    public function get_page_size($i): ?array
+    public function acquirePagesInfo(): void
     {
-        if (is_int($i)) {
-            if ($i < 0) {
-                return null;
-            }
+        $this->pageInfo = PageInfo::new()
+            ->withPdfDocument($this)
+            ->acquirePagesInfo();
+    }
 
-            if ($i > count($this->pagesInfo)) {
-                return null;
-            }
-
-            $pageinfo = $this->pagesInfo[$i]['info'];
-        } else {
-            foreach ($this->pagesInfo as $info) {
-                if ($info['oid'] === $i->get_oid()) {
-                    $pageinfo = $info['info'];
-                    break;
-                }
-            }
-        }
-
-        return $pageinfo['size'] ?? null;
+    public function getPageInfo(): PageInfo
+    {
+        return $this->pageInfo;
     }
 }

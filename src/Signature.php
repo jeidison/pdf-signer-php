@@ -96,7 +96,7 @@ class Signature
             throw new Exception('Invalid root object');
         }
 
-        $pageObj = $this->pdfDocument->get_page($pageToAppear);
+        $pageObj = $this->pdfDocument->getPageInfo()->getPage($pageToAppear);
         if ($pageObj === false) {
             throw new Exception('Invalid page');
         }
@@ -133,7 +133,7 @@ class Signature
         $annotationObject['V'] = new PDFValueReference($signature->getOid());
 
         if ($imageFileName !== null) {
-            $pagesize = $this->pdfDocument->get_page_size($pageToAppear);
+            $pagesize = $this->pdfDocument->getPageInfo()->getPageSize($pageToAppear);
             $pagesize = explode(' ', (string) $pagesize[0]->val());
             $pagesizeH = (float) ($pagesize[3]) - (float) ($pagesize[1]);
 

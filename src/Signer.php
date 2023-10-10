@@ -72,7 +72,7 @@ class Signer
         $oids = array_keys($xrefTable);
         sort($oids);
         $pdfDocument->setMaxOid(array_pop($oids));
-        $pdfDocument->acquire_pages_info();
+        $pdfDocument->acquirePagesInfo();
 
         $this->signature->withPdfDocument($pdfDocument);
     }
