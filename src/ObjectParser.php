@@ -162,7 +162,7 @@ class ObjectParser implements Stringable
 
     public function __toString(): string
     {
-        return 'pos: '.$this->_buffer->getpos().sprintf(', c: %s, n: %s, t: %s, tt: ', $this->_c, $this->_n, $this->_t).
+        return 'pos: '.$this->_buffer->getPosition().sprintf(', c: %s, n: %s, t: %s, tt: ', $this->_c, $this->_n, $this->_t).
         self::T_NAMES[$this->_tt].', b: '.$this->_buffer->substratpos(50).
         "\n";
     }
@@ -375,7 +375,6 @@ class ObjectParser implements Stringable
                     $this->nexttoken();
 
                     return new PDFValueObject($object);
-                    break;
                 default:
                     throw new Exception('Invalid token: '.$this);
             }
@@ -404,7 +403,6 @@ class ObjectParser implements Stringable
                 case self::T_STREAM_BEGIN:
                 case self::T_STREAM_END:
                     throw new Exception('Invalid list definition');
-                    break;
                 default:
                     $value = $this->_parse_value();
                     if ($value !== false) {
@@ -424,22 +422,18 @@ class ObjectParser implements Stringable
             switch ($this->_tt) {
                 case self::T_DICT_START:
                     return $this->_parse_obj();
-                    break;
                 case self::T_LIST_START:
                     return $this->_parse_list();
-                    break;
                 case self::T_STRING:
                     $string = new PDFValueString($this->_t);
                     $this->nexttoken();
 
                     return $string;
-                    break;
                 case self::T_HEX_STRING:
                     $string = new PDFValueHexString($this->_t);
                     $this->nexttoken();
 
                     return $string;
-                    break;
                 case self::T_FIELD:
                     $field = new PDFValueType($this->_t);
                     $this->nexttoken();
@@ -463,14 +457,7 @@ class ObjectParser implements Stringable
                         $this->nexttoken();
                     }
 
-                    /*
-                    WON'T DO IT: the meaning of each element in a list is contextual; e.g. [ 10 10 0 R ] may mean [ 10 "reference to object 10" ], or [ 10 10 0 R ], where R is
-                        a value for a flag... as SAPP is agnostic, we won't break it into objects; instead we offer the "get_referenced_object" for "simple" and "list" objects
-                        and then the app that uses SAPP will decide wether it may use the values as object references or not.
-                    */
                     return new PDFValueSimple($simpleValue);
-                    break;
-
                 default:
                     throw new Exception('Invalid token: '.$this);
             }

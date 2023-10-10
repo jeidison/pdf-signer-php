@@ -155,7 +155,7 @@ endstream
         return $decoded->raw();
     }
 
-    public function getStream($raw = true)
+    public function getStream($raw = true): string
     {
         if ($raw === true) {
             return $this->stream;

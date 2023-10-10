@@ -353,7 +353,7 @@ class PdfDocument
             if ((($referenced = $metadata->get_object_referenced()) !== false) && (! is_array($referenced))) {
                 $metadata = $this->getObject($referenced);
                 $metaStream = $metadata->getStream();
-                $metaStream = preg_replace('/<xmp:ModifyDate>([^<]*)<\/xmp:ModifyDate>/', '<xmp:ModifyDate>'.$date->format('c').'</xmp:ModifyDate>', (string) $metaStream);
+                $metaStream = preg_replace('/<xmp:ModifyDate>([^<]*)<\/xmp:ModifyDate>/', '<xmp:ModifyDate>'.$date->format('c').'</xmp:ModifyDate>', $metaStream);
                 $metaStream = preg_replace('/<xmp:MetadataDate>([^<]*)<\/xmp:MetadataDate>/', '<xmp:MetadataDate>'.$date->format('c').'</xmp:MetadataDate>', $metaStream);
                 $metaStream = preg_replace('/<xmpMM:InstanceID>([^<]*)<\/xmpMM:InstanceID>/', '<xmpMM:InstanceID>uuid:'.Uuid::uuid4()->toString().'</xmpMM:InstanceID>', $metaStream);
                 $metadata->setStream($metaStream, false);
