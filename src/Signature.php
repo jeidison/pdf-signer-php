@@ -125,7 +125,7 @@ class Signature
             'T' => new PDFValueString('Signature'.Str::random()),
             'P' => new PDFValueReference($pageObj->getOid()),
             'Rect' => $rectToAppear,
-            'F' => 132,  // TODO: check this value
+            'F' => 132,
         ]
         );
 
@@ -226,6 +226,7 @@ class Signature
             $this->pdfDocument->addObject($object);
         }
 
+        /** @var SignatureObject $signature */
         return $signature->withName($this->metadata->getName())
             ->withLocation($this->metadata->getLocation())
             ->withReason($this->metadata->getReason())

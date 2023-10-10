@@ -113,8 +113,7 @@ class Signer
             return $this->pdfDocument->getBuffer();
         }
 
-        $this->pdfDocument->update_mod_date();
-
+        $this->pdfDocument->updateModifyDate();
         $signature = $this->signature->generateSignatureInDocument();
 
         [$docToXref, $objOffSets] = Xref::new()

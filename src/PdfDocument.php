@@ -409,7 +409,7 @@ class PdfDocument
         return $this->getObject($this->pagesInfo[$i]['id']);
     }
 
-    public function update_mod_date(DateTime $date = null)
+    public function updateModifyDate(DateTime $date = null): bool
     {
         $root = $this->trailerObject['Root'];
         if (($root === false) || (($root = $root->getObjectReferenced()) === false)) {
@@ -418,7 +418,7 @@ class PdfDocument
 
         $rootObj = $this->getObject($root);
         if ($rootObj === false) {
-            throw new Exception('invalid root object');
+            throw new Exception('Invalid root object');
         }
 
         $date ??= new DateTime();
@@ -427,18 +427,18 @@ class PdfDocument
             $metadata = $rootObj['Metadata'];
             if ((($referenced = $metadata->get_object_referenced()) !== false) && (! is_array($referenced))) {
                 $metadata = $this->getObject($referenced);
-                $metastream = $metadata->get_stream();
-                $metastream = preg_replace('/<xmp:ModifyDate>([^<]*)<\/xmp:ModifyDate>/', '<xmp:ModifyDate>'.$date->format('c').'</xmp:ModifyDate>', (string) $metastream);
-                $metastream = preg_replace('/<xmp:MetadataDate>([^<]*)<\/xmp:MetadataDate>/', '<xmp:MetadataDate>'.$date->format('c').'</xmp:MetadataDate>', $metastream);
-                $metastream = preg_replace('/<xmpMM:InstanceID>([^<]*)<\/xmpMM:InstanceID>/', '<xmpMM:InstanceID>uuid:'.Uuid::uuid4()->toString().'</xmpMM:InstanceID>', $metastream);
-                $metadata->setStream($metastream, false);
+                $metaStream = $metadata->get_stream();
+                $metaStream = preg_replace('/<xmp:ModifyDate>([^<]*)<\/xmp:ModifyDate>/', '<xmp:ModifyDate>'.$date->format('c').'</xmp:ModifyDate>', (string) $metaStream);
+                $metaStream = preg_replace('/<xmp:MetadataDate>([^<]*)<\/xmp:MetadataDate>/', '<xmp:MetadataDate>'.$date->format('c').'</xmp:MetadataDate>', $metaStream);
+                $metaStream = preg_replace('/<xmpMM:InstanceID>([^<]*)<\/xmpMM:InstanceID>/', '<xmpMM:InstanceID>uuid:'.Uuid::uuid4()->toString().'</xmpMM:InstanceID>', $metaStream);
+                $metadata->setStream($metaStream, false);
                 $this->addObject($metadata);
             }
         }
 
         $info = $this->trailerObject['Info'];
         if (($info === false) || (($info = $info->getObjectReferenced()) === false)) {
-            throw new Exception('could not find the info object from the trailer');
+            throw new Exception('Could not find the info object from the trailer');
         }
 
         $infoObj = $this->getObject($info);
@@ -451,22 +451,6 @@ class PdfDocument
         $this->addObject($infoObj);
 
         return true;
-    }
-
-    public function generate_content_to_xref()
-    {
-        $result = new Buffer($this->buffer);
-        $offsets = [];
-        $offsets[0] = 0;
-
-        $offset = $result->size();
-        foreach ($this->pdfObjects as $objId => $object) {
-            $result->data($object->toPdfEntry());
-            $offsets[$objId] = $offset;
-            $offset = $result->size();
-        }
-
-        return [$result, $offsets];
     }
 
     public function get_page_size($i): ?array
