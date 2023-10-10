@@ -190,7 +190,7 @@ function readStream($f, $n): string
 function readInt($f): int
 {
     // Read a 4-byte integer from stream
-    $a = unpack('Ni', (string) readStream($f, 4));
+    $a = unpack('Ni', readStream($f, 4));
 
     return $a['i'];
 }
